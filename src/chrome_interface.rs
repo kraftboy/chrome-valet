@@ -14,6 +14,13 @@ pub struct ChromeInterface
     statefile_path: OsString
 }
 
+#[derive(Debug, Clone)]
+pub struct ChromeProfileEntry
+{
+    pub profile_directory: String,
+    pub profile_name: String,
+}
+
 impl ChromeInterface
 {
     pub fn new() -> Self
@@ -37,17 +44,22 @@ impl ChromeInterface
         return Some(String::from(last_used_profile));
     }
 
-    pub fn get_profile_names(&self) -> Option<Vec<String>>
+    pub fn get_profile_names(&self) -> Option<Vec<ChromeProfileEntry>>
     {
         let local_statefile_obj = self.open_local_statefile_as_object();
-        let mut profile_names: Vec<String> = Vec::new();
+        let mut profile_names: Vec<ChromeProfileEntry> = Vec::new();
 
-        let json_profile_names = &local_statefile_obj["profile"]["info_cache"];
-        if json_profile_names.is_object()
+        let json_profiles = &local_statefile_obj["profile"]["info_cache"];
+        if json_profiles.is_object()
         {
-            for profile_name in json_profile_names.as_object().unwrap()
-            {
-                profile_names.push(String::from(profile_name.0.as_str()));
+            for profile_entry in json_profiles.as_object().unwrap()
+            {   
+                let entry_data = profile_entry.1.as_object().unwrap();
+                let chrome_profile_entry: ChromeProfileEntry = ChromeProfileEntry {
+                    profile_directory: profile_entry.0.to_string(),
+                    profile_name: String::from(entry_data["shortcut_name"].as_str().unwrap())
+                };
+                profile_names.push(chrome_profile_entry);
             }
 
             return Some(profile_names);
@@ -71,11 +83,9 @@ impl ChromeInterface
 
 }
 
-
-
-
-
 /*
+// todo, get chrome icon from here:
+
 let img_bytes = reqwest::blocking::get("...")?
     .bytes()?;
 

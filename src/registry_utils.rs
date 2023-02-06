@@ -73,6 +73,7 @@ pub fn create_registry_keys() -> Result<(), registry::Error>
     regkey = create_key(r"SOFTWARE\Clients\StartMenuInternet\ChromeProfilePicker\shell\open\command")?;
     create_value(&regkey, r"", r#"C:\Users\g\source\repos\chrome_profile_proxy\target\debug\chrome_profile_proxy.exe"#)?;
 
+    
     // register url handler
 
     regkey = create_key(r"Software\Classes\ChromeProfilePickerHTML")?;
