@@ -6,19 +6,74 @@ use std::path::Path;
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::Write;
+use std::sync::Arc;
+use egui::{ColorImage};
+use futures::lock::Mutex;
 
 const LOCALAPPDATA:&str = "LOCALAPPDATA";
 
-pub struct ChromeInterface
+pub struct ChromeProfilePicture
 {
-    statefile_path: OsString
+    picture_url: String,
+    pub img: Option<ColorImage>,
+    pub profile_texture: Option<egui::TextureHandle>,
 }
 
-#[derive(Debug, Clone)]
+impl ChromeProfilePicture
+{
+    pub fn new(img_url: &String) -> Self
+    {
+        ChromeProfilePicture {
+            picture_url: img_url.clone(),
+            img: None,
+            profile_texture: None
+        }
+    }
+
+    pub fn set_image_data(self: &mut Self, data: &Vec<u8>)
+    {
+        fn load_image_from_memory(image_data: &[u8]) -> Result<ColorImage, image::ImageError> {
+            let image = image::load_from_memory(image_data)?;
+            let size = [image.width() as _, image.height() as _];
+            let image_buffer = image.to_rgba8();
+            let pixels = image_buffer.as_flat_samples();
+            Ok(ColorImage::from_rgba_unmultiplied(
+                size,
+                pixels.as_slice(),
+            ))
+        }
+
+        self.img = Some(load_image_from_memory(data).unwrap_or_default());
+    }
+}
+
+impl ChromeProfilePicture {
+    pub async fn get_picture(self: &mut Self) -> Result<(), reqwest::Error>
+    {
+        if !self.picture_url.is_empty()
+        {
+            let my_result = reqwest::get(self.picture_url.clone()).await?.bytes().await?;
+            self.set_image_data(&my_result.to_vec());
+        }
+        return Ok(());
+    }
+}
+
+#[derive(Debug)]
 pub struct ChromeProfileEntry
 {
     pub profile_directory: String,
     pub profile_name: String,
+    pub profile_picture: Arc<Mutex<ChromeProfilePicture>>,
+}
+
+unsafe impl Send for ChromeProfilePicture {}
+
+#[derive(Default)]
+pub struct ChromeInterface
+{
+    statefile_path: OsString,
+    pub profile_entries: Vec<ChromeProfileEntry>
 }
 
 impl ChromeInterface
@@ -26,7 +81,11 @@ impl ChromeInterface
     pub fn new() -> Self
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
-        Self { statefile_path : Path::join(Path::new(OsStr::new(&local_app_data)), "Google/Chrome/User Data/Local State").into_os_string() }
+        let new = ChromeInterface {
+            statefile_path : Path::join(Path::new(OsStr::new(&local_app_data)),"Google/Chrome/User Data/Local State").into_os_string(),
+            profile_entries: Vec::new()
+        };
+        return new;
     }
 
     fn open_local_statefile_as_object(&self) -> Value
@@ -44,30 +103,36 @@ impl ChromeInterface
         return Some(String::from(last_used_profile));
     }
 
-    pub fn get_profile_names(&self) -> Option<Vec<ChromeProfileEntry>>
+    pub fn populate_profile_entries(&mut self) -> bool
     {
         let local_statefile_obj = self.open_local_statefile_as_object();
-        let mut profile_names: Vec<ChromeProfileEntry> = Vec::new();
-
         let json_profiles = &local_statefile_obj["profile"]["info_cache"];
         if json_profiles.is_object()
         {
             for profile_entry in json_profiles.as_object().unwrap()
             {   
                 let entry_data = profile_entry.1.as_object().unwrap();
+                let mut profile_picture_url = String::default();
+                if entry_data.get_key_value("last_downloaded_gaia_picture_url_with_size").is_some() {
+                    profile_picture_url = String::from(entry_data["last_downloaded_gaia_picture_url_with_size"].as_str().unwrap());
+                }
+
                 let chrome_profile_entry: ChromeProfileEntry = ChromeProfileEntry {
                     profile_directory: profile_entry.0.to_string(),
-                    profile_name: String::from(entry_data["shortcut_name"].as_str().unwrap())
+                    profile_name: String::from(entry_data["shortcut_name"].as_str().unwrap()),
+                    profile_picture: Arc::new(Mutex::new(ChromeProfilePicture::new(&profile_picture_url)))
                 };
-                profile_names.push(chrome_profile_entry);
+
+                self.profile_entries.push(chrome_profile_entry);
             }
 
-            return Some(profile_names);
+            return true;
         }
         
-        return None;
+        return false;
     }
 
+    #[allow(dead_code)]
     pub fn set_lastused_profile(&self, profile_name:&str)
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
@@ -80,7 +145,6 @@ impl ChromeInterface
         let mut statefile_write = File::options().write(true).truncate(true).open(statefile_path.clone()).unwrap();
         statefile_write.write(local_statefile_changed.to_string().as_bytes()).unwrap();
     }
-
 }
 
 /*
