@@ -28,6 +28,18 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "(Windows) Launch /w URL and open UI",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
+            "preLaunchTask": "rust: cargo build",
+            "args": ["--force-ui", "--url", "https://www.google.com/search?q=garret+thomson&A=foo&b=bar"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
         }
     ]
 }
