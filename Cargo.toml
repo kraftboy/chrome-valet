@@ -8,9 +8,6 @@ edition = "2021"
 [dependencies]
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
-registry = "*"
-utfx = "*"
-winapi = "*"
 clap = { version = "4.1.4", features = ["derive"] }
 device_query = "1.1.2"
 egui = "0.20.1"
@@ -19,11 +16,14 @@ eframe = { version = "0.20.0", default-features = false, features = [
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
-reqwest = "0.11.14"
 futures = "0.3.26"
-tokio = { version = "1", features = ["full"] }
-threadpool = "1.8.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 image = "0.24.5"
+winapi = "0.3.9"
+utfx = "0.1.0"
+registry = "1.2.2"
+simple-logging = "2.0.2"
+log = "0.4.17"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
