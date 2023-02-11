@@ -1,5 +1,7 @@
 // #![windows_subsystem = "windows"]
 
+// #[macro_use] extern crate quick_error;
+
 use std::os::windows::process::CommandExt;
 use std::process::Command;
 use std::process::exit;
@@ -13,21 +15,22 @@ use log::{debug,warn,info,error};
 
 use eframe::egui;
 use device_query::{DeviceQuery, DeviceState, Keycode};
+use egui::{Color32,Sense};
 use clap::Parser;
+use std::io;
 
-mod chrome_interface;
 mod registry_utils;
-use chrome_interface::ChromeInterface;
+mod chrome_interface;
 
 const DETACHED_PROCESS: u32 = 0x00000008;
 
-type RegUtilityFn = fn() -> Result<(), registry::Error>;
-fn do_utility_and_exit(util_fn: RegUtilityFn)
+type RegUtilityFn = fn(bool) -> Result<(), registry::Error>;
+fn do_utility_and_exit(util_fn: RegUtilityFn, create: bool, action: &str)
 {
-    match util_fn()
+    match util_fn(create)
     {
-        Err(e) => error!("Error creating registry keys: {:?}", e),
-        _ => info!("Registry keys created."),
+        Err(e) => error!("Failed: {} -> {:?}", action, e),
+        _ => info!("{}", action),
     }
 
     exit(0);
@@ -35,7 +38,7 @@ fn do_utility_and_exit(util_fn: RegUtilityFn)
 
 fn soft_panic(url: &String)
 {
-    open_url_in_chrome_and_exit(&url, &String::default());
+    open_url_in_chrome_and_exit(&url, &String::default(), true);
 }
 
 #[derive(Parser, Debug)]
@@ -64,12 +67,16 @@ struct Args {
 
 static mut PANIC_URL: [u8;2048] = [0; 2048];
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+#[tokio::main(flavor = "multi_thread", worker_threads = 3)]
 async fn main() {
 
     let args = Args::parse();
-    debug!("args: {:?}", args);
+    match LevelFilter::from_str(args.log_level.as_str()) {
+        Ok(x) => simple_logging::log_to(io::stdout(), x),
+        Err(x) => warn!("failed to set log level! logging off {:?}", x),
+    }
 
+    debug!("args: {:?}", args);
     // register minimum nice behaviour for panics, just open the damn browser
     unsafe { PANIC_URL[0..args.url.len()].copy_from_slice(args.url.as_bytes()); };
     panic::set_hook(Box::new(|_| {
@@ -77,22 +84,22 @@ async fn main() {
             // there's probably a less hairy way of doing this, but I'm not rust ninja enough yet
             let mut url_str = str::from_utf8(&PANIC_URL).unwrap();
             url_str = &url_str[0..PANIC_URL.into_iter().position(|r| { r == 0 }).unwrap()];
-            open_url_in_chrome_and_exit(&String::from(url_str), &String::default());
+            open_url_in_chrome_and_exit(&String::from(url_str), &String::default(), false);
         }
     }));
 
-    match LevelFilter::from_str(args.log_level.as_str()) {
-        Ok(x) => simple_logging::log_to_file("test.log", x).unwrap(),
-        Err(x) => warn!("failed to set log level! logging off {:?}", x),
-    }
-
     if args.create_keys {
-        do_utility_and_exit(registry_utils::create_registry_keys);
+        do_utility_and_exit(registry_utils::edit_registry_keys, true, "Registry keys create");
     } else if args.delete_keys {
-        do_utility_and_exit(registry_utils::delete_registry_keys);
+        do_utility_and_exit(registry_utils::edit_registry_keys, false, "Registry keys delete");
     }
     
     let mut chrome = chrome_interface::ChromeInterface::new();
+    match chrome.read_prefs() {
+        Err(e) => warn!("couldn't read prefs: {}", e),
+        _ => (),
+    }
+
     if !chrome.populate_profile_entries()
     {
         error!("couldn't get chrome profile(s)");
@@ -101,10 +108,9 @@ async fn main() {
 
     let device_state = DeviceState::new();
     let keys: Vec<Keycode> = device_state.get_keys();
-    if !args.force_ui && !keys.contains(&Keycode::LControl)
+    if (!args.force_ui && !keys.contains(&Keycode::LControl)) && !args.url.is_empty()
     {
-        open_url_in_chrome_and_exit(&args.url, &String::default());
-        return;
+        open_url_in_chrome_and_exit(&args.url, &String::default(), true);
     }
 
     // design notes: 
@@ -117,8 +123,8 @@ async fn main() {
     //  else
     //   open in last used
 
-    let app_height = (chrome.profile_entries.len() as f32) * MyApp::BUTTON_SIZE + 30.0;
-    let app_width = MyApp::PROFILE_BUTTON_WIDTH + MyApp::BUTTON_SIZE * 2.0 + 30.0; // profile button + two buttons + margins (5px*3)
+    let app_height = (chrome.profile_entries.len() as f32) * (MyApp::BUTTON_SIZE + 15.0) + 50.0; // need plenty of space for context menu on bottom button
+    let app_width = MyApp::PROFILE_BUTTON_WIDTH + MyApp::BUTTON_SIZE * 3.0 + 20.0; // profile button + button + margins (5px*3)
 
     let ci_arcm = Arc::new(Mutex::new(chrome));
     let profile_picture_fetch = ci_arcm.clone();
@@ -139,7 +145,7 @@ async fn main() {
 
     // actually run the app
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(app_width  + 200.0, app_height)),
+        initial_window_size: Some(egui::vec2(app_width, app_height)),
         resizable: false,
         // decorated: false,
         ..Default::default()
@@ -148,13 +154,15 @@ async fn main() {
     eframe::run_native(
         "chrome picker",
         options,
-        Box::new(|_cc| Box::new(MyApp {chrome_interface: ci_arcm, url: args.url })),
+        Box::new(|_cc| Box::new(MyApp {chrome_interface: ci_arcm, url: args.url, device_state: DeviceState::new() })),
     );
+    
 }
 
 struct MyApp {
-    chrome_interface: Arc<Mutex<ChromeInterface>>,
+    chrome_interface: Arc<Mutex<chrome_interface::ChromeInterface>>,
     url: String,
+    device_state: DeviceState,
 }
 
 impl MyApp
@@ -171,69 +179,120 @@ impl eframe::App for MyApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        
         egui::CentralPanel::default().show(ctx, |ui| {
-
-            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
-                
-                ui.with_layout(egui::Layout::top_down(egui::Align::TOP), |ui| {
-                    for profile_entry in &self.chrome_interface.lock().unwrap().profile_entries {
-
-                        let mut lock = profile_entry.profile_picture.try_lock();
-                        if let Some(ref mut _mutex) = lock {
-                            let mut profile_picture = lock.unwrap();
-                            if profile_picture.img != None
-                            {
-                                let profile_image_copy = profile_picture.img.clone();
-                                let texture: &egui::TextureHandle = profile_picture.profile_texture.get_or_insert_with(|| {
-                                    // Load the texture only once.
-                                    ui.ctx().load_texture(
-                                        format!("{} Profile Pic Texture", profile_entry.profile_name),
-                                        profile_image_copy.unwrap(),
-                                        Default::default()
-                                    )
-                                });
+        
+            // show the user which url we're talking about
+            if !self.url.is_empty() {
+                let mut trimmed_url_for_display = self.url.clone();
+                if trimmed_url_for_display.len() > 32 {
+                    trimmed_url_for_display = format!("{}...", trimmed_url_for_display[0..32].to_string());
+                }
+                ui.label(format!("url to open: {}", trimmed_url_for_display))
+                    .on_hover_ui(|ui| {
+                        ui.add_sized(egui::vec2(300.0, 100.0), egui::Label::new(self.url.clone()));
+                    });
+            }
             
-                                let image = egui::Image::new(texture, egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
-                                ui.add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), image);
-                            }
-                        };
-                    }
-                });
+            egui::Grid::new("some_unique_id").show(ui, |ui| {
 
-                ui.with_layout(egui::Layout::top_down(egui::Align::TOP), |ui| {
-                    for profile_entry in &self.chrome_interface.lock().unwrap().profile_entries {
-                        let mut button = egui::Button::new(profile_entry.profile_name.clone());
-                        if ui.add_sized(egui::vec2(200.0, MyApp::BUTTON_SIZE), button).clicked() {
-                            open_url_in_chrome_and_exit(&self.url, &profile_entry.profile_directory.clone());
+                ui.label("");
+                ui.label("Profile");
+                ui.end_row();
+
+                let chrome_lock = self.chrome_interface.lock();
+                if chrome_lock.is_err() {
+                    error!("couldn't lock chrome_inteface!");
+                    return;
+                }
+
+                let mut chrome_interface = chrome_lock.unwrap();
+                let prefs = chrome_interface.prefs();
+                let last_selected_profile = prefs.get_selected_profile().clone();
+                let mut selected_profile = last_selected_profile.clone();
+
+                for profile_entry in &chrome_interface.profile_entries {
+                    let mut lock = profile_entry.profile_picture.try_lock();
+                    if let Some(ref mut _mutex) = lock {
+                        let mut profile_picture = lock.unwrap();
+                        if profile_picture.img != None
+                        {
+                            let profile_image_copy = profile_picture.img.clone();
+                            let texture: &egui::TextureHandle = profile_picture.profile_texture.get_or_insert_with(|| {
+                                // Load the texture only once.
+                                ui.ctx().load_texture(
+                                    format!("{} Profile Pic Texture", profile_entry.profile_name),
+                                    profile_image_copy.unwrap(),
+                                    Default::default()
+                                )
+                            });
+        
+                            let image = egui::Image::new(texture, egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
+                            ui.add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), image);
                         }
+                    };
+
+                    /*
+                    // I would love to use context menus, but they have a major problem right now in that they paint off the edges
+                    // of the frame. Comboboxes are not much better. They do reposition - albeit kind of stupidly - but you can't
+                    // set the size of the "button" that fronts them (outside of a bunch of manual stuff out of the scope of this effort)
+                    // I'll leave this here tho:
+                    .context_menu(|ui| {
+                        ui.button("set nickname".to_string());
+                        ui.button("turn off browser check".to_string());
+                    })
+                     */
+                    let mut button = egui::Button::new(profile_entry.profile_name.clone());
+                    
+                    // if there's no url, the buttons do nothing
+                    if self.url.is_empty() {
+                        button = button.sense(Sense::hover());
                     }
-                });
 
-                ui.with_layout(egui::Layout::top_down(egui::Align::TOP), |ui| {
-                    for profile_entry in &self.chrome_interface.lock().unwrap().profile_entries {
-                        let cb = egui::ComboBox::from_id_source(profile_entry.profile_name.as_str()).width(100.0)
-                        .show_ui(ui, |ui| {
-                            ui.set_min_size(egui::vec2(150.0, 30.0));
-                            ui.button("set default".to_string());
-                            ui.button("turn off browser check".to_string());
-                        });
-
-                        /*
-                        let mut button = egui::Button::new("...".to_string());
-                        button = button.min_size(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
-                        if ui.add(button).clicked() {
-                            // todo, dropdown menu
+                    if ui.add_sized(egui::vec2(200.0, MyApp::BUTTON_SIZE), button).clicked() {
+                        
+                        let mut exit_after_open_url = true;
+                        let keys: Vec<Keycode> = self.device_state.get_keys();
+                        if keys.contains(&Keycode::LShift)
+                        {
+                            exit_after_open_url = false;
                         }
-                        */
-                    }
-                });
 
+                        open_url_in_chrome_and_exit(&self.url, &profile_entry.profile_directory.clone(), exit_after_open_url);
+                    }
+                    
+                    ui.scope(|ui| {
+                        if selected_profile == profile_entry.profile_directory {
+                            ui.style_mut().visuals.override_text_color = Some(Color32::from_rgba_unmultiplied(255, 0, 0, 196));
+                        }
+
+                        let button = egui::widgets::Button::new("♡");
+                        if ui.add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), button).clicked() {
+                            // todo: set default
+                            selected_profile = profile_entry.profile_directory.clone();
+                        }
+                    });
+
+                    ui.end_row();
+                } // for profile entry
+
+                if last_selected_profile != selected_profile
+                {
+                    let prefs = chrome_interface.prefs_mut();
+                    prefs.set_selected_profile(&selected_profile);
+
+                    // todo: do this right in prefs once I pull out all the file stuff
+                    match chrome_interface.write_prefs() {
+                        Err(e) => error!("couldn't write prefs: {}", e),
+                        _ => {}
+                    }
+                }
             });
         });
     }
 }
 
-fn open_url_in_chrome_and_exit(url: &String, profile_name: &String)
+fn open_url_in_chrome_and_exit(url: &String, profile_name: &String, exit_when_done: bool)
 {
     debug!("url: {}", url);
     let mut chrome_command_line: String = String::default();
@@ -258,7 +317,11 @@ fn open_url_in_chrome_and_exit(url: &String, profile_name: &String)
 
     match chrome_command_child_result
     {
-        Err(e) => println!("Error excecuting command: {}", e),
+        Err(e) => error!("Error excecuting command: {}", e),
         _ => (),
     };
+
+    if exit_when_done {
+        exit(0);
+    }
 }

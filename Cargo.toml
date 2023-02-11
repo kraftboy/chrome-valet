@@ -2,6 +2,8 @@
 name = "chrome_profile_proxy"
 version = "0.1.0"
 edition = "2021"
+authors = ["Garret Thomson <g@sirsonic.com>"]
+description = "A utility to set a preferred chrome profile to open http links in windows"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -24,7 +26,11 @@ utfx = "0.1.0"
 registry = "1.2.2"
 simple-logging = "2.0.2"
 log = "0.4.17"
+quick-error = "2.0.1"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tracing-subscriber = "0.3"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"

@@ -40,6 +40,30 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "(Windows) Create Keys",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
+            "preLaunchTask": "rust: cargo build",
+            "args": ["--create-keys"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "(Windows) Delete Keys",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
+            "preLaunchTask": "rust: cargo build",
+            "args": ["--delete-keys", "--log-level", "debug"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
         }
     ]
 }
