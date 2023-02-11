@@ -1,3 +1,6 @@
+pool:
+  vmImage: 'windows-2022'
+  
 jobs:
  - template: default.yml@templates
 
