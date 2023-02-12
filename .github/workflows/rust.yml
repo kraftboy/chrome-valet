@@ -31,7 +31,8 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Install cargo wix
-      run: cargo install cargo-wix --verbose
+      continue-on-error: true
+      run: cargo install cargo-wix --verbose || true
     - name: Build wix
       run: cargo wix --verbose
     - name: Run tests
