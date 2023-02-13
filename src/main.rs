@@ -11,7 +11,7 @@ use std::str::FromStr;
 use std::panic;
 use std::str;
 use log::LevelFilter;
-use log::{debug,warn,info,error,trace};
+use log::{debug,warn,error,trace};
 use std::time::Instant;
 
 use eframe::egui;
@@ -25,18 +25,6 @@ mod chrome_interface;
 
 const DETACHED_PROCESS: u32 = 0x00000008;
 
-type RegUtilityFn = fn(bool) -> Result<(), registry::Error>;
-fn do_utility_and_exit(util_fn: RegUtilityFn, create: bool, action: &str)
-{
-    match util_fn(create)
-    {
-        Err(e) => error!("Failed: {} -> {:?}", action, e),
-        _ => info!("{}", action),
-    }
-
-    exit(0);
-}
-
 fn soft_panic(url: &String)
 {
     open_url_in_chrome_and_exit(&url, &String::default(), true);
@@ -45,14 +33,6 @@ fn soft_panic(url: &String)
 #[derive(Parser, Debug)]
 #[command(version, about)]
 struct Args {
-   /// Create registry keys
-   #[arg(long, default_value = "false")]
-   create_keys: bool,
-
-   /// Delete registry keys
-   #[arg(long, default_value = "false")]
-   delete_keys: bool,
-
    /// Url to open
    #[arg(long, default_value = "")]
    url: String,
@@ -103,12 +83,6 @@ async fn main() {
         }
     }));
 
-    if args.create_keys {
-        do_utility_and_exit(registry_utils::edit_registry_keys, true, "Registry keys create");
-    } else if args.delete_keys {
-        do_utility_and_exit(registry_utils::edit_registry_keys, false, "Registry keys delete");
-    }
-    
     let mut chrome = chrome_interface::ChromeInterface::new();
     match chrome.read_prefs() {
         Err(e) => warn!("couldn't read prefs: {}", e),
@@ -168,7 +142,7 @@ async fn main() {
     };
 
     eframe::run_native(
-        "chrome picker",
+        "Chrome Valet",
         options,
         Box::new(move |_cc|
             Box::new(MyApp {chrome_interface: ci_arcm,
