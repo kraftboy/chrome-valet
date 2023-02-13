@@ -156,7 +156,24 @@
                     </Component>
                 </Directory>
             </Directory>
+            <!-- start menu shortcut -->
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="[ProductName]"/>
+            </Directory>
         </Directory>
+
+        <!-- start menu shortcut -->
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="ApplicationShortcut" Guid="16c95503-3a75-428f-bb35-6610ea0ecbba">
+                <Shortcut Id="ApplicationStartMenuShortcut" 
+                        Name="[ProductName]"
+                        Description="App"
+                        Target="[exe0]"
+                        WorkingDirectory="APPLICATIONROOTDIRECTORY"/>
+                <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\[ProductName]" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
 
         <Feature
             Id='Binaries'
@@ -173,7 +190,7 @@
               sidecar file to the installer.
             -->
             <!--<ComponentRef Id='License'/>-->
-
+            <ComponentRef Id="ApplicationShortcut" />
             <ComponentRef Id='binary0'/>
             <ComponentRef Id='RegistryEntries'/>
         </Feature>

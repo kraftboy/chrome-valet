@@ -12,7 +12,7 @@ use egui::{ColorImage, Color32};
 use futures::lock::Mutex;
 
 const LOCALAPPDATA:&str = "LOCALAPPDATA";
-const PROGRAM_NAME:&str = "ChromePicker";
+const PROGRAM_NAME:&str = "ChromeValet";
 
 pub struct ChromeProfilePicture
 {
@@ -120,18 +120,18 @@ unsafe impl Send for ChromeProfilePicture {}
 #[derive(Default, Serialize, Deserialize)]
 pub struct ProgramPrefs
 {
-    pub selected_profile: String
+    pub preferred_profile: String
 }
 
 impl ProgramPrefs
 {
-    pub fn get_selected_profile(&self) -> String {
-        return self.selected_profile.clone();
+    pub fn get_preferred_profile(&self) -> String {
+        return self.preferred_profile.clone();
     }
 
-    pub fn set_selected_profile(&mut self, profile_dir: &String)
+    pub fn set_preferred_profile(&mut self, profile_dir: &String)
     {
-        self.selected_profile = profile_dir.clone();
+        self.preferred_profile = profile_dir.clone();
     }
 }
 

@@ -73,6 +73,7 @@ async fn main() {
 
     // lets us print to the console despite using windows subsystem (ie, process doesn't spawn console)
     // perhaps a to-do is to generate two binaries, one for console, the other not
+    /*
     #[cfg(target_os = "windows")]
     {
         use winapi::um::wincon::{AttachConsole, ATTACH_PARENT_PROCESS};
@@ -80,7 +81,7 @@ async fn main() {
             AttachConsole(ATTACH_PARENT_PROCESS);
         }
     }
-
+    */
     // for tracking startup time
     let main_begin_time: Instant = Instant::now();
 
@@ -122,9 +123,10 @@ async fn main() {
 
     let device_state = DeviceState::new();
     let keys: Vec<Keycode> = device_state.get_keys();
-    if (!args.force_ui && !keys.contains(&Keycode::LControl)) && !args.url.is_empty()
+    let preferred_profile = chrome.prefs().get_preferred_profile();
+    if (!args.force_ui && !keys.contains(&Keycode::LControl)) && !args.url.is_empty() && !preferred_profile.is_empty()
     {
-        open_url_in_chrome_and_exit(&args.url, &String::default(), true);
+        open_url_in_chrome_and_exit(&args.url, &preferred_profile, true);
     }
 
     // design notes: 
@@ -228,8 +230,8 @@ impl eframe::App for MyApp {
 
                 let mut chrome_interface = chrome_lock.unwrap();
                 let prefs = chrome_interface.prefs();
-                let last_selected_profile = prefs.get_selected_profile().clone();
-                let mut selected_profile = last_selected_profile.clone();
+                let last_preferred_profile = prefs.get_preferred_profile().clone();
+                let mut preferred_profile = last_preferred_profile.clone();
 
                 for profile_entry in &chrome_interface.profile_entries {
                     let mut lock = profile_entry.profile_picture.try_lock();
@@ -285,24 +287,24 @@ impl eframe::App for MyApp {
                     }
                     
                     ui.scope(|ui| {
-                        if selected_profile == profile_entry.profile_directory {
+                        if preferred_profile == profile_entry.profile_directory {
                             ui.style_mut().visuals.override_text_color = Some(Color32::from_rgba_unmultiplied(255, 0, 0, 196));
                         }
 
                         let button = egui::widgets::Button::new("♡");
                         if ui.add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), button).clicked() {
                             // todo: set default
-                            selected_profile = profile_entry.profile_directory.clone();
+                            preferred_profile = profile_entry.profile_directory.clone();
                         }
                     });
 
                     ui.end_row();
                 } // for profile entry
 
-                if last_selected_profile != selected_profile
+                if last_preferred_profile != preferred_profile
                 {
                     let prefs = chrome_interface.prefs_mut();
-                    prefs.set_selected_profile(&selected_profile);
+                    prefs.set_preferred_profile(&preferred_profile);
 
                     // todo: do this right in prefs once I pull out all the file stuff
                     match chrome_interface.write_prefs() {
