@@ -11,7 +11,8 @@ use std::str::FromStr;
 use std::panic;
 use std::str;
 use log::LevelFilter;
-use log::{debug,warn,info,error};
+use log::{debug,warn,info,error,trace};
+use std::time::Instant;
 
 use eframe::egui;
 use device_query::{DeviceQuery, DeviceState, Keycode};
@@ -67,8 +68,21 @@ struct Args {
 
 static mut PANIC_URL: [u8;2048] = [0; 2048];
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 3)]
+#[tokio::main]
 async fn main() {
+
+    // lets us print to the console despite using windows subsystem (ie, process doesn't spawn console)
+    // perhaps a to-do is to generate two binaries, one for console, the other not
+    #[cfg(target_os = "windows")]
+    {
+        use winapi::um::wincon::{AttachConsole, ATTACH_PARENT_PROCESS};
+        unsafe {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+        }
+    }
+
+    // for tracking startup time
+    let main_begin_time: Instant = Instant::now();
 
     let args = Args::parse();
     match LevelFilter::from_str(args.log_level.as_str()) {
@@ -154,7 +168,12 @@ async fn main() {
     eframe::run_native(
         "chrome picker",
         options,
-        Box::new(|_cc| Box::new(MyApp {chrome_interface: ci_arcm, url: args.url, device_state: DeviceState::new() })),
+        Box::new(move |_cc|
+            Box::new(MyApp {chrome_interface: ci_arcm,
+                url: args.url,
+                device_state: DeviceState::new(),
+                main_begin_time
+                : main_begin_time })),
     );
     
 }
@@ -163,6 +182,7 @@ struct MyApp {
     chrome_interface: Arc<Mutex<chrome_interface::ChromeInterface>>,
     url: String,
     device_state: DeviceState,
+    main_begin_time: Instant,
 }
 
 impl MyApp
@@ -219,6 +239,9 @@ impl eframe::App for MyApp {
                         {
                             let profile_image_copy = profile_picture.img.clone();
                             let texture: &egui::TextureHandle = profile_picture.profile_texture.get_or_insert_with(|| {
+
+                                trace!("Time until profile texture load: {:5} millis", self.main_begin_time.elapsed().as_millis());
+
                                 // Load the texture only once.
                                 ui.ctx().load_texture(
                                     format!("{} Profile Pic Texture", profile_entry.profile_name),

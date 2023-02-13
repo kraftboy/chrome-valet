@@ -1,0 +1,1 @@
+msiexec /i target\wix\chrome_valet-0.1.0-x86_64.msi /passive

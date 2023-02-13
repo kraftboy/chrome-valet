@@ -2,8 +2,8 @@ use utfx::U16CString;
 use registry::{RegKey, Hive, Data, Security};
 use log::{debug, error};
 
-const APP_LOCATION: &str = r#"C:\Users\g\source\repos\chrome_profile_proxy\target\release\chrome_profile_proxy.exe"#;
-const APP_LOCATION_ICON: &str = r#"C:\Users\g\source\repos\chrome_profile_proxy\target\release\chrome_profile_proxy.exe,0"#;
+const APP_LOCATION: &str = r#"C:\Users\g\source\repos\chrome_profile_proxy\target\release\chrome_valet.exe"#;
+const APP_LOCATION_ICON: &str = r#"C:\Users\g\source\repos\chrome_profile_proxy\target\release\chrome_valet.exe,0"#;
 const APPLICATION_NAME: &str = "Chrome Valet";
 const APPLICATION_REGISTRY_NAME: &str = "ChromeValet";
 
@@ -107,7 +107,7 @@ pub fn edit_registry_keys(create: bool) -> Result<(), registry::Error>
     regkey = create_key(&key_name)?;
     value_name = "Software\\Clients\\StartMenuInternet\\".to_owned() + APPLICATION_REGISTRY_NAME + "\\Capabilities";
     create_value(&regkey, APPLICATION_REGISTRY_NAME, &value_name)?;
-    
+
     if !create {
         for key_name in &keys
         {

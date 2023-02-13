@@ -60,9 +60,9 @@
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
 
     <Product
-        Id='*'
-        Name='chrome_profile_proxy'
-        UpgradeCode='D7C74E31-179E-4943-837A-E1734270F78B'
+        Id='9e4adcf9-43c6-4d37-9b06-d3d7b3dc67b2'
+        Name='ChromeValet'
+        UpgradeCode='7E582783-D5DF-408F-8AEB-A762F19C434E'
         Manufacturer='Garret Thomson'
         Language='1033'
         Codepage='1252'
@@ -70,7 +70,7 @@
 
         <Package Id='*'
             Keywords='Installer'
-            Description='A utility to set a preferred chrome profile to open http links in windows'
+            Description='A utility to open urls in a preferred chrome profile'
             Manufacturer='Garret Thomson'
             InstallerVersion='450'
             Languages='1033'
@@ -84,11 +84,11 @@
             DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
 
         <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
-        <Property Id='DiskPrompt' Value='chrome_profile_proxy Installation'/>
+        <Property Id='DiskPrompt' Value='ChromeValet Installation'/>
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
-                <Directory Id='APPLICATIONFOLDER' Name='chrome_profile_proxy'>
+                <Directory Id='APPLICATIONFOLDER' Name='ChromeValet'>
                     
                     <!--
                       Enabling the license sidecar file in the installer is a four step process:
@@ -110,26 +110,50 @@
                     </Component>
                     -->
 
-                    <Directory Id='Bin' Name='bin'>
-                        <Component Id='Path' Guid='F836EB05-B1CF-40D8-BC8B-079147C8F0C2' KeyPath='yes'>
-                            <Environment
-                                Id='PATH'
-                                Name='PATH'
-                                Value='[Bin]'
-                                Permanent='no'
-                                Part='last'
-                                Action='set'
-                                System='yes'/>
-                        </Component>
-                        <Component Id='binary0' Guid='*'>
-                            <File
-                                Id='exe0'
-                                Name='chrome_profile_proxy.exe'
-                                DiskId='1'
-                                Source='$(var.CargoTargetBinDir)\chrome_profile_proxy.exe'
-                                KeyPath='yes'/>
-                        </Component>
-                    </Directory>
+                    <Component Id='binary0' Guid='*'>
+                        <File
+                            Id='exe0'
+                            Name='chrome_valet.exe'
+                            DiskId='1'
+                            Source='$(var.CargoTargetBinDir)\chrome_valet.exe'
+                            KeyPath='yes'/>
+                    </Component>
+                    <Component Id="RegistryEntries" Guid="04c1ade7-ebf1-4c92-9f0b-320aaae9fecd">
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\Capabilities">
+                            <RegistryValue Type="string" Name="ApplicationDescription" Value="[ProductName]" KeyPath="yes"/>
+                            <RegistryValue Type="string" Name="ApplicationIcon" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
+                            <RegistryValue Type="string" Name="ApplicationName" Value="Chrome Valet"/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\Capabilities\URLAssociations">
+                            <RegistryValue Type="string" Name="http" Value="[ProductName]URL"/>
+                            <RegistryValue Type="string" Name="https" Value="[ProductName]URL"/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\DefaultIcon">
+                            <RegistryValue Type="string" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\shell\open\command">
+                            <RegistryValue Type="string" Value="[APPLICATIONFOLDER]chrome_valet.exe"/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\classes\[ProductName]URL">
+                            <RegistryValue Type="string" Value="[ProductName] URL"/>
+                            <RegistryValue Type="string" Name="FriendlyTypeName" Value="[ProductName] URL"/>
+                            <RegistryValue Type="string" Name="URL Protocol" Value=""/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\classes\[ProductName]URL\Application">
+                            <RegistryValue Type="string" Name="ApplicationDescription" Value="[ProductName]"/>
+                            <RegistryValue Type="string" Name="ApplicationIcon" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
+                            <RegistryValue Type="string" Name="ApplicationName" Value="Chrome Valet"/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="Software\Classes\[ProductName]URL\DefaultIcon">
+                            <RegistryValue Type="string" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="Software\Classes\[ProductName]URL\shell\open\command">
+                            <RegistryValue Type="string" Value='[APPLICATIONFOLDER]chrome_valet.exe --url "%1"'/>
+                        </RegistryKey>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\RegisteredApplications">
+                            <RegistryValue Type="string" Name="[ProductName]" Value="Software\Clients\StartMenuInternet\[ProductName]\Capabilities"/>
+                        </RegistryKey>
+                    </Component>
                 </Directory>
             </Directory>
         </Directory>
@@ -151,15 +175,7 @@
             <!--<ComponentRef Id='License'/>-->
 
             <ComponentRef Id='binary0'/>
-
-            <Feature
-                Id='Environment'
-                Title='PATH Environment Variable'
-                Description='Add the install location of the [ProductName] executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
-                Level='1'
-                Absent='allow'>
-                <ComponentRef Id='Path'/>
-            </Feature>
+            <ComponentRef Id='RegistryEntries'/>
         </Feature>
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
@@ -171,8 +187,8 @@
           The product icon is the graphic that appears in the Add/Remove
           Programs control panel for the application.
         -->
-        <!--<Icon Id='ProductICO' SourceFile='wix\Product.ico'/>-->
-        <!--<Property Id='ARPPRODUCTICON' Value='ProductICO' />-->
+        <Icon Id='ProductICO' SourceFile='assets\valet_icon.ico'/>
+        <Property Id='ARPPRODUCTICON' Value='ProductICO' />
 
         
         <!--

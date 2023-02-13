@@ -1,9 +1,9 @@
 [package]
-name = "chrome_profile_proxy"
+name = "chrome_valet"
 version = "0.1.0"
 edition = "2021"
 authors = ["Garret Thomson <g@sirsonic.com>"]
-description = "A utility to set a preferred chrome profile to open http links in windows"
+description = "A utility to open urls in a preferred chrome profile"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
