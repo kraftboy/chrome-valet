@@ -141,6 +141,16 @@ async fn main() {
         ..Default::default()
     };
 
+    // we init as true just so the failstate is not to spurriously warn the user
+    let mut is_default_browser = true;
+    if let Ok(x) = registry_utils::is_default_browser() {
+        if !x {
+            is_default_browser = false;
+        }
+    } else {
+        error!("Couldn't do default browser detection");
+    }
+
     eframe::run_native(
         "Chrome Valet",
         options,
@@ -148,8 +158,8 @@ async fn main() {
             Box::new(MyApp {chrome_interface: ci_arcm,
                 url: args.url,
                 device_state: DeviceState::new(),
-                main_begin_time
-                : main_begin_time })),
+                main_begin_time: main_begin_time,
+                is_default_browser: is_default_browser })),
     );
     
 }
@@ -159,6 +169,7 @@ struct MyApp {
     url: String,
     device_state: DeviceState,
     main_begin_time: Instant,
+    is_default_browser: bool,
 }
 
 impl MyApp
@@ -178,6 +189,13 @@ impl eframe::App for MyApp {
         
         egui::CentralPanel::default().show(ctx, |ui| {
         
+            if !self.is_default_browser {
+                if ui.add(egui::Button::new("Chrome Valet not set as default browser. Click here to open default apps to set.")).clicked()
+                {
+                    open_default_apps();
+                }
+            }
+
             // show the user which url we're talking about
             if !self.url.is_empty() {
                 let mut trimmed_url_for_display = self.url.clone();
@@ -323,4 +341,18 @@ fn open_url_in_chrome_and_exit(url: &String, profile_name: &String, exit_when_do
     if exit_when_done {
         exit(0);
     }
+}
+
+fn open_default_apps() {
+    let mut default_apps_command = Command::new("cmd");
+    default_apps_command.args(&["/c", "start", "ms-settings:defaultapps"]);
+    default_apps_command.creation_flags(DETACHED_PROCESS);
+    let chrome_command_child_result = default_apps_command.spawn();
+    match chrome_command_child_result
+    {
+        Err(e) => {
+            error!("Error excecuting command: {}", e)
+        },
+        _ => (),
+    };
 }

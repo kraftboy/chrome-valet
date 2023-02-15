@@ -57,6 +57,8 @@
     <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
 <?endif ?>
 
+<?define RegistryProductName="ChromeValet" ?>
+
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
 
     <Product
@@ -120,40 +122,40 @@
                             KeyPath='yes'/>
                     </Component>
                     <Component Id="RegistryEntries" Guid="04c1ade7-ebf1-4c92-9f0b-320aaae9fecd">
-                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\Capabilities">
-                            <RegistryValue Type="string" Name="ApplicationDescription" Value="[ProductName]" KeyPath="yes"/>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\$(var.RegistryProductName)\Capabilities">
+                            <RegistryValue Type="string" Name="ApplicationDescription" Value="$(var.RegistryProductName)" KeyPath="yes"/>
                             <RegistryValue Type="string" Name="ApplicationIcon" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
                             <RegistryValue Type="string" Name="ApplicationName" Value="Chrome Valet"/>
                         </RegistryKey>
-                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\Capabilities\URLAssociations">
-                            <RegistryValue Type="string" Name="http" Value="[ProductName]URL"/>
-                            <RegistryValue Type="string" Name="https" Value="[ProductName]URL"/>
-                            <RegistryValue Type="string" Name="ftp" Value="[ProductName]URL"/>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\$(var.RegistryProductName)\Capabilities\URLAssociations">
+                            <RegistryValue Type="string" Name="http" Value="$(var.RegistryProductName)URL"/>
+                            <RegistryValue Type="string" Name="https" Value="$(var.RegistryProductName)URL"/>
+                            <RegistryValue Type="string" Name="ftp" Value="$(var.RegistryProductName)URL"/>
                         </RegistryKey>
-                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\DefaultIcon">
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\$(var.RegistryProductName)\DefaultIcon">
                             <RegistryValue Type="string" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
                         </RegistryKey>
-                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\shell\open\command">
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\$(var.RegistryProductName)\shell\open\command">
                             <RegistryValue Type="string" Value="[APPLICATIONFOLDER]chrome_valet.exe"/>
                         </RegistryKey>
-                        <RegistryKey Root="HKCU" Key="SOFTWARE\classes\[ProductName]URL">
-                            <RegistryValue Type="string" Value="[ProductName] URL"/>
-                            <RegistryValue Type="string" Name="FriendlyTypeName" Value="[ProductName] URL"/>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\classes\$(var.RegistryProductName)URL">
+                            <RegistryValue Type="string" Value="$(var.RegistryProductName) URL"/>
+                            <RegistryValue Type="string" Name="FriendlyTypeName" Value="$(var.RegistryProductName) URL"/>
                             <RegistryValue Type="string" Name="URL Protocol" Value=""/>
                         </RegistryKey>
-                        <RegistryKey Root="HKCU" Key="SOFTWARE\classes\[ProductName]URL\Application">
-                            <RegistryValue Type="string" Name="ApplicationDescription" Value="[ProductName]"/>
+                        <RegistryKey Root="HKCU" Key="SOFTWARE\classes\$(var.RegistryProductName)URL\Application">
+                            <RegistryValue Type="string" Name="ApplicationDescription" Value="$(var.RegistryProductName)"/>
                             <RegistryValue Type="string" Name="ApplicationIcon" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
                             <RegistryValue Type="string" Name="ApplicationName" Value="Chrome Valet"/>
                         </RegistryKey>
-                        <RegistryKey Root="HKCU" Key="Software\Classes\[ProductName]URL\DefaultIcon">
+                        <RegistryKey Root="HKCU" Key="Software\Classes\$(var.RegistryProductName)URL\DefaultIcon">
                             <RegistryValue Type="string" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
                         </RegistryKey>
-                        <RegistryKey Root="HKCU" Key="Software\Classes\[ProductName]URL\shell\open\command">
+                        <RegistryKey Root="HKCU" Key="Software\Classes\$(var.RegistryProductName)URL\shell\open\command">
                             <RegistryValue Type="string" Value='[APPLICATIONFOLDER]chrome_valet.exe --url "%1"'/>
                         </RegistryKey>
                         <RegistryKey Root="HKCU" Key="SOFTWARE\RegisteredApplications">
-                            <RegistryValue Type="string" Name="[ProductName]" Value="Software\Clients\StartMenuInternet\[ProductName]\Capabilities"/>
+                            <RegistryValue Type="string" Name="$(var.RegistryProductName)" Value="Software\Clients\StartMenuInternet\$(var.RegistryProductName)\Capabilities"/>
                         </RegistryKey>
                     </Component>
                 </Directory>
