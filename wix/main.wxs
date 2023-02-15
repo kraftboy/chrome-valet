@@ -60,8 +60,8 @@
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
 
     <Product
-        Id='9e4adcf9-43c6-4d37-9b06-d3d7b3dc67b2'
-        Name='ChromeValet'
+        Id='*'
+        Name='Chrome Valet'
         UpgradeCode='7E582783-D5DF-408F-8AEB-A762F19C434E'
         Manufacturer='Garret Thomson'
         Language='1033'
@@ -81,6 +81,7 @@
 
         <MajorUpgrade
             Schedule='afterInstallInitialize'
+            AllowSameVersionUpgrades="yes" 
             DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
 
         <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
@@ -127,6 +128,7 @@
                         <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\Capabilities\URLAssociations">
                             <RegistryValue Type="string" Name="http" Value="[ProductName]URL"/>
                             <RegistryValue Type="string" Name="https" Value="[ProductName]URL"/>
+                            <RegistryValue Type="string" Name="ftp" Value="[ProductName]URL"/>
                         </RegistryKey>
                         <RegistryKey Root="HKCU" Key="SOFTWARE\Clients\StartMenuInternet\[ProductName]\DefaultIcon">
                             <RegistryValue Type="string" Value="[APPLICATIONFOLDER]chrome_valet.exe,0"/>
@@ -164,7 +166,7 @@
 
         <!-- start menu shortcut -->
         <DirectoryRef Id="ApplicationProgramsFolder">
-            <Component Id="ApplicationShortcut" Guid="16c95503-3a75-428f-bb35-6610ea0ecbba">
+            <Component Id="ApplicationShortcut" Guid="*">
                 <Shortcut Id="ApplicationStartMenuShortcut" 
                         Name="[ProductName]"
                         Description="App"
@@ -219,31 +221,28 @@
         -->
         <!--<Property Id='ARPHELPLINK' Value='ChangeMe'/>-->
 
-        <UI>
-            <UIRef Id='WixUI_FeatureTree'/>
-            
-            <!--
-              Enabling the EULA dialog in the installer is a three step process:
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch ChromeValet" />
+        <Property Id="WixShellExecTarget" Value="[#exe0]" />
+        <CustomAction Id="LaunchApplication" 
+            BinaryKey="WixCA" 
+            DllEntry="WixShellExec"
+            Impersonate="yes" />
 
-                1. Comment out or remove the two `Publish` tags that follow the
-                   `WixVariable` tag.
-                2. Uncomment the `<WixVariable Id='WixUILicenseRtf' Value='Path\to\Eula.rft'>` tag futher down
-                3. Replace the `Value` attribute of the `WixVariable` tag with
-                   the path to a RTF file that will be used as the EULA and
-                   displayed in the license agreement dialog.
-            -->
-            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99'>1</Publish>
-            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99'>1</Publish>
+        <UI>
+            <UIRef Id='WixUI_Minimal'/>
+            <Publish Dialog="ExitDialog" 
+                Control="Finish" 
+                Event="DoAction" 
+                Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
 
         </UI>
 
-        
         <!--
           Enabling the EULA dialog in the installer requires uncommenting
           the following `WixUILicenseRTF` tag and changing the `Value`
           attribute.
         -->
-        <!-- <WixVariable Id='WixUILicenseRtf' Value='Relative\Path\to\Eula.rtf'/> -->
+        <WixVariable Id='WixUILicenseRtf' Value='assets\eula.rtf'/>
 
         
         <!--
