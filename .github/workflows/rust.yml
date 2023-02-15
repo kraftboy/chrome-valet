@@ -25,9 +25,12 @@ jobs:
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
-          target/            
+          target/
+          !target/wix
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
+    - name: Get Short SHA
+      run: echo "GITHUB_SHA_SHORT=$(git rev-parse --short ${{github.sha}})" >> $env:GITHUB_ENV 
     - name: Build
       run: cargo build --verbose
     - name: Install cargo wix
@@ -47,6 +50,6 @@ jobs:
     - name: Installer Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: installer
+        name: chrome_valet_x64_${{ env.GITHUB_SHA_SHORT }}
         path: |
-          target/wix/*.msi
+          target/wix/chrome_valet*.msi
