@@ -19,6 +19,7 @@ use device_query::{DeviceQuery, DeviceState, Keycode};
 use egui::{Color32,Sense};
 use clap::Parser;
 use std::io;
+use cli_clipboard::{ClipboardProvider, ClipboardContext};
 
 mod registry_utils;
 mod chrome_interface;
@@ -95,26 +96,34 @@ async fn main() {
         soft_panic(&args.url);
     }
 
+    // if ctrl pressed or no preferred profile
+    //  open UI
+    // else
+    //  open in preferred profile
+
     let device_state = DeviceState::new();
     let keys: Vec<Keycode> = device_state.get_keys();
     let preferred_profile = chrome.prefs().get_preferred_profile();
-    if (!args.force_ui && !keys.contains(&Keycode::LControl)) && !args.url.is_empty() && !preferred_profile.is_empty()
+    if (!args.force_ui && !keys.contains(&Keycode::LAlt)) && !args.url.is_empty() && !preferred_profile.is_empty()
     {
         open_url_in_chrome_and_exit(&args.url, &preferred_profile, true);
     }
 
-    // design notes: 
-    // - be able to "pin" a profile
-    // if ctrl pressed
-    //  open UI
-    // else
-    //  if profile pinned
-    //   open in that one
-    //  else
-    //   open in last used
 
-    let app_height = (chrome.profile_entries.len() as f32) * (MyApp::BUTTON_SIZE + 15.0) + 50.0; // need plenty of space for context menu on bottom button
+
+    let mut app_height = (chrome.profile_entries.len() as f32) * (MyApp::BUTTON_SIZE + 15.0) + 50.0; // need plenty of space for context menu on bottom button
     let app_width = MyApp::PROFILE_BUTTON_WIDTH + MyApp::BUTTON_SIZE * 3.0 + 20.0; // profile button + button + margins (5px*3)
+
+    // we init as true just so the failstate is not to spurriously warn the user
+    let mut is_default_browser = true;
+    if let Ok(x) = registry_utils::is_default_browser() {
+        if !x {
+            is_default_browser = false;
+            app_height += 100.0;
+        }
+    } else {
+        error!("Couldn't do default browser detection");
+    }
 
     let ci_arcm = Arc::new(Mutex::new(chrome));
     let profile_picture_fetch = ci_arcm.clone();
@@ -140,16 +149,6 @@ async fn main() {
         // decorated: false,
         ..Default::default()
     };
-
-    // we init as true just so the failstate is not to spurriously warn the user
-    let mut is_default_browser = true;
-    if let Ok(x) = registry_utils::is_default_browser() {
-        if !x {
-            is_default_browser = false;
-        }
-    } else {
-        error!("Couldn't do default browser detection");
-    }
 
     eframe::run_native(
         "Chrome Valet",
@@ -188,26 +187,49 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         
         egui::CentralPanel::default().show(ctx, |ui| {
-        
+
             if !self.is_default_browser {
-                if ui.add(egui::Button::new("Chrome Valet not set as default browser. Click here to open default apps to set.")).clicked()
-                {
-                    open_default_apps();
-                }
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.scope(|ui| {
+                        ui.style_mut().visuals.override_text_color = Some(Color32::from_rgba_unmultiplied(255, 123, 0, 255));
+                        ui.add_sized(egui::vec2(240.0, 50.0), egui::Label::new("Chrome Valet must be set as default browser to work.").wrap(true));
+                    });
+                    if ui.add(egui::Button::new("Open default app settings").wrap(true)).clicked()
+                    {
+                        open_default_apps();
+                    }
+                });
+
+                ui.separator();
             }
 
             // show the user which url we're talking about
             if !self.url.is_empty() {
                 let mut trimmed_url_for_display = self.url.clone();
-                if trimmed_url_for_display.len() > 32 {
-                    trimmed_url_for_display = format!("{}...", trimmed_url_for_display[0..32].to_string());
+                let trim_len = 32;
+                if trimmed_url_for_display.len() > trim_len {
+                    trimmed_url_for_display = format!("{}...", trimmed_url_for_display[0..trim_len].to_string());
                 }
-                ui.label(format!("url to open: {}", trimmed_url_for_display))
-                    .on_hover_ui(|ui| {
-                        ui.add_sized(egui::vec2(300.0, 100.0), egui::Label::new(self.url.clone()));
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
+                    ui.scope(|ui| {
+                        ui.style_mut().override_text_style = Some(egui::style::TextStyle::Monospace);
+                        let my_label = egui::Label::new(format!("URL: {}", trimmed_url_for_display));
+                        ui.add(my_label)
+                            .on_hover_ui(|ui| {
+                                ui.add_sized(egui::vec2(300.0, 100.0), egui::Label::new(self.url.clone()));
+                            });
+                        
+                        let clipboard_label = egui::Label::new("📋").sense(Sense::click());
+                        if ui.add(clipboard_label).clicked()
+                        {
+                            cli_clipboard::set_contents(self.url.to_owned()).unwrap();
+                        }
                     });
+                });
             }
-            
+
+            ui.separator();
+
             egui::Grid::new("some_unique_id").show(ui, |ui| {
 
                 ui.label("");

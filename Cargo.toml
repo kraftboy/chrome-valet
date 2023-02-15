@@ -27,6 +27,7 @@ registry = "1.2.2"
 simple-logging = "2.0.2"
 log = "0.4.17"
 quick-error = "2.0.1"
+cli-clipboard = "0.4.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
