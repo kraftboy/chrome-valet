@@ -8,6 +8,7 @@ on:
       - '**.toml'
       - '**.wxs'
       - 'assets/**'
+      - '.github/workflows/rust.yml'
       
   pull_request:
     branches: [ "main" ]
