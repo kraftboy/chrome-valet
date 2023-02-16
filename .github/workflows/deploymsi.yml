@@ -1,0 +1,54 @@
+name: Deploy MSI
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+  
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up cargo cache
+      uses: actions/cache@v3
+      continue-on-error: false
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+          !target/wix
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
+
+    - name: Install cargo commands
+      continue-on-error: true
+      run: | 
+        cargo install cargo-bump --verbose || true
+        cargo install cargo-get --verbose || true
+
+    - name: Get version
+      run: echo "CV_VERSION=$(cargo get version)" >> $env:GITHUB_ENV
+      
+    - name: Download artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
+
+    - name: copy file via ssh key
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SIRSONIC_HOST }}
+        username: ${{ secrets.SIRSONIC_USERNAME }}
+        key: ${{ secrets.SIRSONIC_KEY }}
+        source: "chrome_valet-${{ env.CV_VERSION }}-x86_64.msi"
+        target: "chrome_valet-${{ env.CV_VERSION }}-x86_64.msi"
