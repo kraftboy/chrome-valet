@@ -84,6 +84,6 @@ jobs:
       with:
         host: ${{ secrets.SIRSONIC_HOST }}
         username: ${{ secrets.SIRSONIC_USERNAME }}
-        key: ${{ secrets.SIRSONIC_KEY }}
+        privateKey: ${{ secrets.SIRSONIC_KEY }}
         local: "target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi"
         remote: "releases/chrome_valet/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi"
