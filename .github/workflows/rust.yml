@@ -3,6 +3,12 @@ name: Build
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '**.rs'
+      - '**.toml'
+      - '**.wxs'
+      - 'assets/**'
+      
   pull_request:
     branches: [ "main" ]
 
@@ -67,6 +73,6 @@ jobs:
     - name: Installer Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: chrome_valet_x64_${{ env.CV_VERSION }}_${{ env.GITHUB_SHA_SHORT }}
+        name: chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
         path: |
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
