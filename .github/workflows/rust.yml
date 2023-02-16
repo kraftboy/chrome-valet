@@ -3,6 +3,12 @@ name: Build
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '**.rs'
+      - '**.toml'
+      - '**.wxs'
+      - 'assets/**'
+      
   pull_request:
     branches: [ "main" ]
 
