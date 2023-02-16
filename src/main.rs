@@ -27,7 +27,7 @@ const DETACHED_PROCESS: u32 = 0x00000008;
 
 fn soft_panic(url: &String)
 {
-    open_url_in_chrome_and_exit(&url, &String::default(), true);
+    open_url_in_chrome_and_exit(url, &String::default(), true);
 }
 
 #[derive(Parser, Debug)]
@@ -84,9 +84,8 @@ async fn main() {
     }));
 
     let mut chrome = chrome_interface::ChromeInterface::new();
-    match chrome.read_prefs() {
-        Err(e) => warn!("couldn't read prefs: {}", e),
-        _ => (),
+    if let Err(e) = chrome.read_prefs() {
+        warn!("couldn't read prefs: {}", e);
     }
 
     if !chrome.populate_profile_entries()
@@ -156,8 +155,8 @@ async fn main() {
             Box::new(MyApp {chrome_interface: ci_arcm,
                 url: args.url,
                 device_state: DeviceState::new(),
-                main_begin_time: main_begin_time,
-                is_default_browser: is_default_browser })),
+                main_begin_time,
+                is_default_browser })),
     );
     
 }
@@ -180,7 +179,7 @@ impl eframe::App for MyApp {
 
     fn persist_native_window(&self) -> bool
     {
-        return false;
+        false
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -207,12 +206,12 @@ impl eframe::App for MyApp {
                 let mut trimmed_url_for_display = self.url.clone();
                 let trim_len = 32;
                 if trimmed_url_for_display.len() > trim_len {
-                    trimmed_url_for_display = format!("{}...", trimmed_url_for_display[0..trim_len].to_string());
+                    trimmed_url_for_display = format!("{}...", &trimmed_url_for_display[0..trim_len]);
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
                     ui.scope(|ui| {
                         ui.style_mut().override_text_style = Some(egui::style::TextStyle::Monospace);
-                        let my_label = egui::Label::new(format!("URL: {}", trimmed_url_for_display));
+                        let my_label = egui::Label::new(format!("URL: {trimmed_url_for_display}"));
                         ui.add(my_label)
                             .on_hover_ui(|ui| {
                                 ui.add_sized(egui::vec2(300.0, 100.0), egui::Label::new(self.url.clone()));
@@ -243,14 +242,14 @@ impl eframe::App for MyApp {
 
                 let mut chrome_interface = chrome_lock.unwrap();
                 let prefs = chrome_interface.prefs();
-                let last_preferred_profile = prefs.get_preferred_profile().clone();
+                let last_preferred_profile = prefs.get_preferred_profile();
                 let mut preferred_profile = last_preferred_profile.clone();
 
                 for profile_entry in &chrome_interface.profile_entries {
                     let mut lock = profile_entry.profile_picture.try_lock();
                     if let Some(ref mut _mutex) = lock {
                         let mut profile_picture = lock.unwrap();
-                        if profile_picture.img != None
+                        if profile_picture.img.is_some()
                         {
                             let profile_image_copy = profile_picture.img.clone();
                             let texture: &egui::TextureHandle = profile_picture.profile_texture.get_or_insert_with(|| {
@@ -320,9 +319,8 @@ impl eframe::App for MyApp {
                     prefs.set_preferred_profile(&preferred_profile);
 
                     // todo: do this right in prefs once I pull out all the file stuff
-                    match chrome_interface.write_prefs() {
-                        Err(e) => error!("couldn't write prefs: {}", e),
-                        _ => {}
+                    if let Err(e) = chrome_interface.write_prefs() {
+                        error!("couldn't write prefs: {}", e);
                     }
                 }
             });
@@ -344,7 +342,7 @@ fn open_url_in_chrome_and_exit(url: &String, profile_name: &String, exit_when_do
     chrome_command.creation_flags(DETACHED_PROCESS);
 
     if !profile_name.is_empty() {
-        chrome_command.arg(format!("--profile-directory={}", profile_name));
+        chrome_command.arg(format!("--profile-directory={profile_name}"));
     }
     
     chrome_command.arg("--single-argument").arg(url);
@@ -353,10 +351,9 @@ fn open_url_in_chrome_and_exit(url: &String, profile_name: &String, exit_when_do
 
     debug!("chrome command: {:?}", chrome_command);
 
-    match chrome_command_child_result
+    if let Err(e) = chrome_command_child_result
     {
-        Err(e) => error!("Error excecuting command: {}", e),
-        _ => (),
+        error!("Error excecuting command: {}", e);
     };
 
     if exit_when_done {
@@ -366,14 +363,10 @@ fn open_url_in_chrome_and_exit(url: &String, profile_name: &String, exit_when_do
 
 fn open_default_apps() {
     let mut default_apps_command = Command::new("cmd");
-    default_apps_command.args(&["/c", "start", "ms-settings:defaultapps"]);
+    default_apps_command.args(["/c", "start", "ms-settings:defaultapps"]);
     default_apps_command.creation_flags(DETACHED_PROCESS);
-    let chrome_command_child_result = default_apps_command.spawn();
-    match chrome_command_child_result
-    {
-        Err(e) => {
-            error!("Error excecuting command: {}", e)
-        },
-        _ => (),
+    let default_apps_command_result = default_apps_command.spawn();
+    if let Err(e) = default_apps_command_result {
+            error!("Error excecuting command: {}", e);
     };
 }

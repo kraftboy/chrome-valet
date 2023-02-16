@@ -37,14 +37,14 @@ impl ChromeProfilePicture
             picture_filename: OsString::from(filename_path.as_os_str()), 
             img: None,
             profile_texture: None,
-            profile_color: profile_color.clone(),
+            profile_color: *profile_color,
         }
     }
 }
 
 impl ChromeProfilePicture {
 
-    fn apply_circle_mask(self: &mut Self)
+    fn apply_circle_mask(&mut self)
     {
         if self.img.is_none() {
             return;
@@ -65,7 +65,7 @@ impl ChromeProfilePicture {
             
             if dist > (half_dim as f32)
             {
-                *pixel = Color32::from_rgba_unmultiplied(pixel.r(), pixel.g(), pixel.b(), 0).clone();
+                *pixel = Color32::from_rgba_unmultiplied(pixel.r(), pixel.g(), pixel.b(), 0);
             }
 
             if x == 0
@@ -74,10 +74,10 @@ impl ChromeProfilePicture {
             }
 
             x += 1;
-            x = x%dim;
+            x %= dim;
         }
     }
-    pub async fn get_picture(self: &mut Self) -> Result<(), image::ImageError>
+    pub async fn get_picture(&mut self) -> Result<(), image::ImageError>
     {
         if !self.picture_filename.is_empty()
         {
@@ -97,13 +97,13 @@ impl ChromeProfilePicture {
             // make an image entirely with the color of the profile
             let image_size = 128;
             let red_pixels = self.profile_color.iter().cloned().cycle();
-            let image_array = Vec::from(red_pixels.take(image_size * image_size * self.profile_color.len()).collect::<Vec<u8>>());
+            let image_array = red_pixels.take(image_size * image_size * self.profile_color.len()).collect::<Vec<u8>>();
             self.img = Some(ColorImage::from_rgba_unmultiplied([image_size, image_size], &image_array));
         }
 
         self.apply_circle_mask();
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -126,12 +126,12 @@ pub struct ProgramPrefs
 impl ProgramPrefs
 {
     pub fn get_preferred_profile(&self) -> String {
-        return self.preferred_profile.clone();
+        self.preferred_profile.clone()
     }
 
-    pub fn set_preferred_profile(&mut self, profile_dir: &String)
+    pub fn set_preferred_profile(&mut self, profile_dir: &str)
     {
-        self.preferred_profile = profile_dir.clone();
+        self.preferred_profile = profile_dir.to_string();
     }
 }
 
@@ -148,41 +148,41 @@ impl ChromeInterface
     pub fn new() -> Self
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
-        let new = ChromeInterface {
+        let chrome_interface = ChromeInterface {
             statefile_path : Path::join(Path::new(OsStr::new(&local_app_data)),"Google/Chrome/User Data/Local State").into_os_string(),
             profile_entries: Vec::new(),
             prefs: ProgramPrefs::default(),
         };
 
-        return new;
+        chrome_interface
     }
 
     pub fn prefs(&self) -> &ProgramPrefs
     {
-        return &self.prefs;
+        &self.prefs
     }
 
     pub fn prefs_mut(&mut self) -> &mut ProgramPrefs
     {
-        return &mut self.prefs;
+        &mut self.prefs
     }
 
     fn my_prefs_path() -> PathBuf
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
-        return PathBuf::from(local_app_data).join(PROGRAM_NAME).join("prefs.json");
+        PathBuf::from(local_app_data).join(PROGRAM_NAME).join("prefs.json")
     }
 
     fn chrome_prefs_path(profile_dir: &String) -> PathBuf
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
-        return PathBuf::from(local_app_data).join("Google").join("Chrome").join(profile_dir).join("Preferences");
+        PathBuf::from(local_app_data).join("Google").join("Chrome").join(profile_dir).join("Preferences")
     }
 
     fn open_file_as_object(filepath: &OsString) -> IoResult<Value>
     {
         let reader = File::open(filepath)?;
-        return Ok(serde_json::from_reader(reader)?);
+        Ok(serde_json::from_reader(reader)?)
 
         /*
         match serde_json::from_reader(reader) {
@@ -194,13 +194,13 @@ impl ChromeInterface
 
     fn open_local_statefile_as_object(&self) -> IoResult<Value>
     {
-        return Ok(Self::open_file_as_object(&self.statefile_path)?)
+        Self::open_file_as_object(&self.statefile_path)
     }
 
     fn open_prefs_as_object(profile_dir: &String) -> IoResult<Value>
     {
         let prefs_path = Self::chrome_prefs_path(profile_dir);
-        return Ok(Self::open_file_as_object(&prefs_path.as_os_str().to_os_string())?);
+        return Self::open_file_as_object(&prefs_path.as_os_str().to_os_string());
     }
 
     fn write_to_file(file_path: &Path, file_contents: &[u8]) -> IoResult<()>
@@ -236,16 +236,13 @@ impl ChromeInterface
                 };
 
                 let mut profile_color: [u8; 4] = [0,0,0,0];
-                match entry_data.get_key_value("default_avatar_fill_color") {
-                    Some(e) => {
+                if let Some(e) = entry_data.get_key_value("default_avatar_fill_color") {
                         let colour = e.1.as_i64().unwrap_or_default();
                         // color is argb
                         profile_color[3] = ((colour >> 24) & 0xff) as u8;
                         profile_color[0] = ((colour >> 16) & 0xff) as u8;
                         profile_color[1] = ((colour >> 8) & 0xff) as u8;
-                        profile_color[2] = ((colour >> 0) & 0xff) as u8;
-                    },
-                    None => {},
+                        profile_color[2] = (colour & 0xff) as u8;
                 };
          
                 let shortcut_name = match entry_data.get_key_value("shortcut_name") {
@@ -270,7 +267,7 @@ impl ChromeInterface
             return true;
         }
         
-        return false;
+        false
     }
 
     pub fn read_prefs(&mut self) -> IoResult<()>
@@ -291,7 +288,7 @@ impl ChromeInterface
     {
         let prefs_string = serde_json::to_string(&self.prefs).unwrap();
         let prefs_bytes = prefs_string.as_bytes();
-        Self::write_to_file(&Self::my_prefs_path().as_path(), prefs_bytes)?;
+        Self::write_to_file(Self::my_prefs_path().as_path(), prefs_bytes)?;
         Ok(())
     }
 
@@ -305,8 +302,8 @@ impl ChromeInterface
         let mut local_statefile_changed = local_statefile_obj.unwrap();
         local_statefile_changed["profile"]["last_used"] = Value::from(profile_name.to_string());
 
-        let mut statefile_write = File::options().write(true).truncate(true).open(statefile_path.clone()).unwrap();
-        statefile_write.write(local_statefile_changed.to_string().as_bytes()).unwrap();
+        let mut statefile_write = File::options().write(true).truncate(true).open(statefile_path).unwrap();
+        _ = statefile_write.write(local_statefile_changed.to_string().as_bytes()).unwrap();
 
     }
     
