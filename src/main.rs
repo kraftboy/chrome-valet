@@ -19,7 +19,6 @@ use device_query::{DeviceQuery, DeviceState, Keycode};
 use egui::{Color32,Sense};
 use clap::Parser;
 use std::io;
-use cli_clipboard::{ClipboardProvider, ClipboardContext};
 
 mod registry_utils;
 mod chrome_interface;

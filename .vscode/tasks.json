@@ -4,8 +4,9 @@
         {
             "type": "cargo",
             "command": "build",
-            // "args": [ "--verbose", "--config", "debug.toml"],
-            "args": [ "--verbose" ],
+            "args": [
+                "--verbose"
+            ],
             "problemMatcher": [
                 "$rustc"
             ],
@@ -18,8 +19,10 @@
         {
             "type": "cargo",
             "command": "build",
-            // "args": [ "--verbose", "--release", "--config", "release.toml"],
-            "args": [ "--verbose", "--release" ],
+            "args": [
+                "--verbose",
+                "--release"
+            ],
             "problemMatcher": [
                 "$rustc"
             ],
@@ -28,6 +31,28 @@
                 "isDefault": true
             },
             "label": "rust: cargo build (release)"
+        },
+        {
+            "type": "cargo",
+            "command": "clippy",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": {
+                "kind": "none",
+                "isDefault": false
+            },
+            "label": "rust: cargo clippy"
+        },
+        {
+            "type": "cargo",
+            "command": "clippy",
+            "args": [ "--fix "],
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "build",
+            "label": "rust: cargo clippy fix"
         }
     ]
 }

@@ -210,7 +210,7 @@ impl ChromeInterface
         };
 
         let mut writer = File::options().write(true).truncate(true).create(true).open(file_path)?;
-        writer.write(file_contents)?;
+        _ = writer.write(file_contents)?;
 
         Ok(())
     }

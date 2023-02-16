@@ -11,7 +11,7 @@ pub fn get_chrome_exe() -> Result<String, registry::Error>
         Ok(v) => value = v.to_string(),
     }
 
-    return Ok(value);
+    Ok(value)
 }
 
 pub fn is_default_browser() -> Result<bool, registry::Error>
