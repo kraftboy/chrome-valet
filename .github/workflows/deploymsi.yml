@@ -37,7 +37,7 @@ jobs:
         cargo install cargo-get --verbose || true
 
     - name: Get version
-      run: echo "CV_VERSION=$(cargo get version)" >> $env:GITHUB_ENV
+      run: echo "CV_VERSION=$(cargo get version)" >> $GITHUB_ENV
       
     - name: Download artifact
       uses: actions/download-artifact@v3
