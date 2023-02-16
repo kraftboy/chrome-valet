@@ -1,4 +1,4 @@
-name: Chrome Valet
+name: Build
 
 on:
   push:
@@ -16,6 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
     - name: Set up cargo cache
       uses: actions/cache@v3
       continue-on-error: false
@@ -29,18 +30,34 @@ jobs:
           !target/wix
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
+        
+    - name: Install cargo commands
+      continue-on-error: true
+      run: | 
+        cargo install cargo-wix --verbose || true
+        cargo install cargo-bump --verbose || true
+        cargo install cargo-get --verbose || true
+        
     - name: Get Short SHA
       run: echo "GITHUB_SHA_SHORT=$(git rev-parse --short ${{github.sha}})" >> $env:GITHUB_ENV 
-    - name: Build
+      
+    - name: Clippy
+      run: cargo clippy
+      
+    - name: Build Debug
       run: cargo build --verbose
-    - name: Install cargo wix
-      continue-on-error: true
-      run: cargo install cargo-wix --verbose || true
+    - name: Build Release
+      run: cargo build --release --verbose
+        
     - name: Build wix
       run: cargo wix --verbose
     - name: Run tests
       run: cargo test --verbose
-    - name: Binary Artifacts
+      
+    - name: Get version
+      run: echo "CV_VERSION=$(cargo get version)" >> $env:GITHUB_ENV
+      
+    - name: Binaries Artifact
       uses: actions/upload-artifact@v3
       with:
         name: binaries
@@ -50,6 +67,6 @@ jobs:
     - name: Installer Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: chrome_valet_x64_${{ env.GITHUB_SHA_SHORT }}
+        name: chrome_valet_x64_${{ env.CV_VERSION }}_${{ env.GITHUB_SHA_SHORT }}
         path: |
-          target/wix/chrome_valet*.msi
+          target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
