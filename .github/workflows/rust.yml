@@ -27,6 +27,7 @@ jobs:
       uses: actions/cache@v3
       continue-on-error: false
       with:
+        enableCrossOsArchive: true
         path: |
           ~/.cargo/bin/
           ~/.cargo/registry/index/
