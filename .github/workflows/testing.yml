@@ -21,7 +21,7 @@ jobs:
     - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
       run: | 
-        echo "$SIRSONIC_KEY" > priv_key
+        echo '$SIRSONIC_KEY' > priv_key
         chmod 600 priv_key
         echo testfile > foobar
         scp -i priv_key -o PasswordAuthentication=no "foobar" ${{ secrets.SIRSONIC_USER }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
