@@ -79,7 +79,8 @@ jobs:
         path: |
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
           
-    - name: copy file via ssh key
+    - name: scp msi to releases
+      continue-on-error: true
       run: |
         echo "${{ secrets.SIRSONIC_KEY }}" >> .priv_key
         scp -i .priv_key "target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi" ${{ secrets.SIRSONIC_USERNAME }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
