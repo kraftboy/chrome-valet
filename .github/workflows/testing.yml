@@ -34,5 +34,5 @@ jobs:
       
     - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
-      run: scp -i priv_key -o PasswordAuthentication=no "foobar" ${{ secrets.SIRSONIC_USER }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
+      run: scp -i priv_key -o PasswordAuthentication=no "foobar" gthomson@sirsonic.com:dl.sirsonic.com/releases/chrome_valet/
 
