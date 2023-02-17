@@ -83,7 +83,7 @@ jobs:
       uses: Vampire/setup-wsl@v2
       with:
           use-cache: 'true'   
-          additional-packages: openssl
+          additional-packages: ssh
     
     - name: Install msi via scp
       shell: wsl-bash {0}
