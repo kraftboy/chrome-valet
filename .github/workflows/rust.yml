@@ -78,11 +78,15 @@ jobs:
         name: chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
         path: |
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
-    - uses: Vampire/setup-wsl@v2
+          
+    - name: Install wsl
+      uses: Vampire/setup-wsl@v2
       with:
           use-cache: 'true'   
+          additional-packages: openssl
     
-    - shell: wsl-bash {0}
+    - name: Install msi via scp
+      shell: wsl-bash {0}
       continue-on-error: true
       run: |
         echo "${{ secrets.SIRSONIC_KEY }}" >> .priv_key
