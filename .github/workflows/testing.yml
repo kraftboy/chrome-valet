@@ -19,10 +19,11 @@ jobs:
           additional-packages: ssh
     
     - run: ls
-    
+      shell: wsl-bash {0}
+      
     - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
-      run: echo '$SIRSONIC_KEY' > priv_key
+      run: echo "$SIRSONIC_KEY" > priv_key
       env:
         SIRSONIC_KEY: '${{secrets.SIRSONIC_KEY}}'
         
@@ -35,7 +36,8 @@ jobs:
       run: echo testfile > foobar
       
     - run: cat priv_key
-    
+      shell: wsl-bash {0}
+      
     - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
       run: scp -i priv_key -o PasswordAuthentication=no "foobar" gthomson@sirsonic.com:dl.sirsonic.com/releases/chrome_valet/
