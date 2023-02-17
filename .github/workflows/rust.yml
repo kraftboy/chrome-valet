@@ -85,12 +85,13 @@ jobs:
           use-cache: 'true'   
           additional-packages: ssh
     
-    - name: Install msi via scp
+    - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
-      continue-on-error: true
-      run: |
-        echo "${{ secrets.SIRSONIC_KEY }}" >> .priv_key
-        chmod 600 .priv_key
-        cat .priv_key
-        scp -i .priv_key -o PasswordAuthentication=no "target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi" ${{ secrets.SIRSONIC_USER }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
-        rm .priv_key
+      run: | 
+        'echo "$SIRSONIC_KEY" > priv_key'
+        chmod 600 priv_key
+        scp -i priv_key -o PasswordAuthentication=no "target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi" ${{ secrets.SIRSONIC_USER }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
+        rm priv_key
+      env:
+        SSH_KEY: ${{secrets.SIRSONIC_KEY}}
+        
