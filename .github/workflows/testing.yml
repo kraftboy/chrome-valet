@@ -14,7 +14,7 @@ jobs:
     - run: | 
         echo "$SIRSONIC_KEY" > priv_key
         echo testfile > foobar
-        scp -i priv_key -o PasswordAuthentication=no "foobar" ${{ secrets.SIRSONIC_USER }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
+        scp -i priv_key -o PasswordAuthentication=no "foobar" gthomson@sirsonic.com:dl.sirsonic.com/releases/chrome_valet/
         rm priv_key
       env:
         SIRSONIC_KEY: ${{secrets.SIRSONIC_KEY}}
