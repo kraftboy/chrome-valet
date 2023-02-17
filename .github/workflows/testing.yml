@@ -1,5 +1,4 @@
-name: Deploy MSI
-
+name: Testing Workflow
 on:
   workflow_run:
     workflows: [Build]
