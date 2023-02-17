@@ -27,4 +27,4 @@ jobs:
         scp -i priv_key -o PasswordAuthentication=no "foobar" ${{ secrets.SIRSONIC_USER }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
         rm priv_key
       env:
-        SIRSONIC_KEY: ${{secrets.SIRSONIC_KEY}}
+        SIRSONIC_KEY: '${{secrets.SIRSONIC_KEY}}'
