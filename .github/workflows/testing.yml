@@ -34,6 +34,8 @@ jobs:
       shell: wsl-bash {0}
       run: echo testfile > foobar
       
+    - run: cat priv_key
+    
     - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
       run: scp -i priv_key -o PasswordAuthentication=no "foobar" gthomson@sirsonic.com:dl.sirsonic.com/releases/chrome_valet/
