@@ -18,6 +18,8 @@ jobs:
           use-cache: 'true'   
           additional-packages: ssh
     
+    - run: ls
+    
     - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
       run: echo '$SIRSONIC_KEY' > priv_key
