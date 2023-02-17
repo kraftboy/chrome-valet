@@ -80,10 +80,7 @@ jobs:
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
           
     - name: copy file via ssh key
-      uses: garygrossgarten/github-action-scp@release
-      with:
-        host: ${{ secrets.SIRSONIC_HOST }}
-        username: ${{ secrets.SIRSONIC_USERNAME }}
-        privateKey: ${{ secrets.SIRSONIC_KEY }}
-        local: "target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi"
-        remote: "releases/chrome_valet/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi"
+      run: |
+        echo "${{ secrets.SIRSONIC_KEY }}" >> .priv_key
+        scp -i .priv_key "target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi" ${{ secrets.SIRSONIC_USERNAME }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
+        rm .priv_key
