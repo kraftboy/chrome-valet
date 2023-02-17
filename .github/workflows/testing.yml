@@ -18,12 +18,12 @@ jobs:
           use-cache: 'true'   
           additional-packages: ssh
     
-    - run: ls
+    - run: echo "HERE I AM"
       shell: wsl-bash {0}
       
     - name: scp msi to sirsonic.com
       shell: wsl-bash {0}
-      run: echo $SIRSONIC_KEY > priv_key
+      run: cat "$SIRSONIC_KEY" | base64 -d > priv_key
       env:
         SIRSONIC_KEY: '${{secrets.SIRSONIC_KEY}}'
         
