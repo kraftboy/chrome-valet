@@ -8,37 +8,34 @@ on:
 jobs:
   build:
 
-    runs-on: windows-latest
-
+    runs-on: ubuntu-latest
     steps:
     
-    - name: Install wsl
-      uses: Vampire/setup-wsl@v2
-      with:
-          use-cache: 'true'   
-          additional-packages: ssh
+    - uses: actions/checkout@v3
     
-    - run: echo "HERE I AM"
-      shell: wsl-bash {0}
-      
-    - name: scp msi to sirsonic.com
-      shell: wsl-bash {0}
-      run: cat "$SIRSONIC_KEY" | base64 -d > priv_key
-      env:
-        SIRSONIC_KEY: '${{secrets.SIRSONIC_KEY}}'
+    - name: Set up cargo cache
+      uses: actions/cache@v3
+      continue-on-error: false
+      with:
+        enableCrossOsArchive: true
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+          !target/wix
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
         
-    - name: scp msi to sirsonic.com
-      shell: wsl-bash {0}
-      run: chmod 600 priv_key
+    - name: copy file via ssh password
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SIRSONIC_HOST }}
+        username: ${{ secrets.SIRSONIC_USER }}
+        key: ${{ secrets.SIRSONIC_KEY }}
+        port: ${{ secrets.SIRSONIC_PORT }}
+        source: "target/wix/chrome_valet-0.1.1-x86_64.msi"
+        target: "dl.sirsonic.com/releases/chrome_valet"
       
-    - name: scp msi to sirsonic.com
-      shell: wsl-bash {0}
-      run: echo testfile > foobar
-      
-    - run: cat priv_key
-      shell: wsl-bash {0}
-      
-    - name: scp msi to sirsonic.com
-      shell: wsl-bash {0}
-      run: scp -i priv_key -o PasswordAuthentication=no "foobar" gthomson@sirsonic.com:dl.sirsonic.com/releases/chrome_valet/
-
+   
