@@ -88,4 +88,3 @@ jobs:
 
   call-deploy-scp:
     uses: ./.github/workflows/deploymsi.yml
-    
