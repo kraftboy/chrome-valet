@@ -94,7 +94,7 @@ jobs:
           github.rest.actions.createWorkflowDispatch({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            workflow_id: 'test.yml',
+            workflow_id: 'deploymsi.yml',
             ref: 'main',
             inputs: {
               cv_version: '${{ env.CV_VERSION }}'
