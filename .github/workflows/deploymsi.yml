@@ -12,20 +12,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  runs-on: ubuntu-latest
-  steps:
+    runs-on: ubuntu-latest
+    steps:
 
-  - uses: actions/checkout@v3
-    with:
-      ref: ${{ github.event.client_payload.sha }}
-  - name: Set up cargo cache
-    uses: actions/cache/restore@v3
-    continue-on-error: false
-    with:
-      path: |
-        target/
-      key: windows-target-${{ hashFiles('**/Cargo.lock') }}
-      restore-keys: windows-target-
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.client_payload.sha }}
+    - name: Set up cargo cache
+      uses: actions/cache/restore@v3
+      continue-on-error: false
+      with:
+        path: |
+          target/
+        key: windows-target-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: windows-target-
 
   - if: github.event.inputs.cv_version != '0.0.0'
     name: copy file via ssh password
