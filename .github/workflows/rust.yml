@@ -89,4 +89,4 @@ jobs:
     - name: Dispatch scp deploy
       run: gh workflow run deploymsi.yml -f cv_version="${{ env.CV_VERSION }}"
       env:
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ secrets.chrome_valet_pat }}
