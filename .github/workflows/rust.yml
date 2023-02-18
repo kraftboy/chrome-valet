@@ -85,20 +85,3 @@ jobs:
         name: chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
         path: |
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
-          
-    - name: Install wsl
-      uses: Vampire/setup-wsl@v2
-      with:
-          use-cache: 'true'   
-          additional-packages: ssh
-    
-    - name: scp msi to sirsonic.com
-      shell: wsl-bash {0}
-      run: | 
-        'echo "$SIRSONIC_KEY" > priv_key'
-        chmod 600 priv_key
-        scp -i priv_key -o PasswordAuthentication=no "target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi" ${{ secrets.SIRSONIC_USER }}@${{ secrets.SIRSONIC_HOST }}:dl.sirsonic.com/releases/chrome_valet/
-        rm priv_key
-      env:
-        SSH_KEY: ${{secrets.SIRSONIC_KEY}}
-        
