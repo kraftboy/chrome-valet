@@ -24,7 +24,7 @@ jobs:
           ~/.cargo/git/db/
           target/
           !target/wix
-        key: ${{ runner.os }-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         enableCrossOsArchive: true
         restore-keys: windows-cargo-
         
