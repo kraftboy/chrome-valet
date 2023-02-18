@@ -96,5 +96,7 @@ jobs:
             repo: context.repo.repo,
             workflow_id: 'test.yml',
             ref: 'main',
-            vc_version: '${{ env.CV_VERSION }}'
+            inputs: {
+              cv_version: '${{ env.CV_VERSION }}'
+            }
           })
