@@ -87,7 +87,4 @@ jobs:
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
 
     - name: Dispatch scp deploy
-        uses: peter-evans/repository-dispatch@v1
-        with:
-          event-type: build_success
-          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "vs_Ver": "${{ env.CV_VERSION }}"}'
+        run: gh workflow run deploymsi.yml -f cv_version="${{ env.CV_VERSION }}"
