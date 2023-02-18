@@ -28,8 +28,23 @@ jobs:
       uses: actions/cache@v3
       continue-on-error: false
       with:
-        enableCrossOsArchive: true
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: windows-cargo-
+        
+    - name: Set up WIX cache
+      uses: actions/cache@v3
+      continue-on-error: false
+      with:
+        path: |
+          target/
+        key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+        enableCrossOsArchive: true
+        restore-keys: windows-wix-
         
     - name: Install cargo commands
       continue-on-error: true
