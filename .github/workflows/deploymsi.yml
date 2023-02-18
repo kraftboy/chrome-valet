@@ -2,23 +2,25 @@ name: Deploy MSI
 
 on:
   workflow_dispatch:
-  inputs:
-      cv_version:
-        description: 'Chrome Valet version'
-        required: true
-        default: '0.0.0'
+    inputs:
+        cv_version:
+          description: 'Chrome Valet version'
+          required: true
+          default: '0.0.0'
   
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  deploy:
     runs-on: ubuntu-latest
+    
     steps:
-
     - uses: actions/checkout@v3
       with:
         ref: ${{ github.event.client_payload.sha }}
-    - name: Set up cargo cache
+
+    - name: Set up target cache
       uses: actions/cache/restore@v3
       continue-on-error: false
       with:
@@ -27,14 +29,14 @@ jobs:
         key: windows-target-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: windows-target-
 
-  - if: github.event.inputs.cv_version != '0.0.0'
-    name: copy file via ssh password
-    uses: appleboy/scp-action@master
-    with:
-      host: ${{ secrets.SIRSONIC_HOST }}
-      username: ${{ secrets.SIRSONIC_USER }}
-      key: ${{ secrets.SIRSONIC_KEY }}
-      port: ${{ secrets.SIRSONIC_PORT }}
-      source: "target/wix/chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
-      target: "dl.sirsonic.com/releases/chrome_valet"
-      strip_components: 3
+    - if: github.event.inputs.cv_version != '0.0.0'
+      name: copy file via ssh password
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SIRSONIC_HOST }}
+        username: ${{ secrets.SIRSONIC_USER }}
+        key: ${{ secrets.SIRSONIC_KEY }}
+        port: ${{ secrets.SIRSONIC_PORT }}
+        source: "target/wix/chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
+        target: "dl.sirsonic.com/releases/chrome_valet"
+        strip_components: 3
