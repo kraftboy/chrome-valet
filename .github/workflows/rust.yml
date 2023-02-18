@@ -85,6 +85,3 @@ jobs:
         name: chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
         path: |
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
-
-  call-deploy-scp:
-    uses: ./.github/workflows/deploymsi.yml
