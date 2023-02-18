@@ -28,7 +28,13 @@ jobs:
         key: windows-target-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: windows-target-
 
-    - if: github.event.inputs.cv_version != '0.0.0'
+    - name: Check msi existence
+      id: check_files
+      uses: andstor/file-existence-action@v2
+      with:
+        files: "target/wix/chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
+          
+    - if: github.event.inputs.cv_version != '0.0.0' && steps.check_files.outputs.files_exists == 'true'
       name: copy file via ssh password
       uses: appleboy/scp-action@master
       with:
@@ -39,4 +45,3 @@ jobs:
         source: "target/wix/chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
         target: "dl.sirsonic.com/releases/chrome_valet"
         overwrite: true
-        strip_components: 3
