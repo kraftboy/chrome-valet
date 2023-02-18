@@ -87,5 +87,5 @@ jobs:
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
 
   call-deploy-scp:
-    uses: chrome-valet/.github/workflows/deploymsi.yml@main
+    uses: ./.github/workflows/deploymsi.yml
     
