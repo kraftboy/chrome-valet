@@ -87,4 +87,20 @@ jobs:
           target/wix/chrome_valet-${{ env.CV_VERSION }}-x86_64.msi
 
     - name: Dispatch scp deploy
+<<<<<<< HEAD
       run: gh workflow run deploymsi.yml -f cv_version="${{ env.CV_VERSION }}"
+=======
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.CV_WORKFLOW_TOKEN }}
+        script: |
+          github.rest.actions.createWorkflowDispatch({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'deploymsi.yml',
+            ref: 'main',
+            inputs: {
+              cv_version: '${{ env.CV_VERSION }}'
+            }
+          })
+>>>>>>> b8807fafd5425300ac9bb1c7c9a53809642f872c
