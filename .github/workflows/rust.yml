@@ -42,7 +42,7 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: windows-cargo-
         
-    - name: Set up WIX cache
+    - name: Set up target cache
       uses: actions/cache@v3
       continue-on-error: false
       with:
