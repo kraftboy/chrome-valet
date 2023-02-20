@@ -1,5 +1,7 @@
 # chrome-valet
 
+[![Build](https://github.com/kraftboy/chrome-valet/actions/workflows/rust.yml/badge.svg)](https://github.com/kraftboy/chrome-valet/actions/workflows/rust.yml)
+
 Chrome Valet is a utility for opening http links in a preferred chrome profile.
 
 The first time it runs, you can set a preferred profile as indicated by the red heart.
