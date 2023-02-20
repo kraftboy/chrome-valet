@@ -10,6 +10,9 @@ use std::io::{Write, Result as IoResult, ErrorKind as IoErrorKind};
 use std::sync::Arc;
 use egui::{ColorImage, Color32};
 use futures::lock::Mutex;
+use log::{error};
+
+use crate::registry_utils;
 
 const LOCALAPPDATA:&str = "LOCALAPPDATA";
 const PROGRAM_NAME:&str = "ChromeValet";
@@ -120,13 +123,14 @@ unsafe impl Send for ChromeProfilePicture {}
 #[derive(Default, Serialize, Deserialize)]
 pub struct ProgramPrefs
 {
-    pub preferred_profile: String
+    pub preferred_profile: String,
+    pub default_browser: String
 }
 
 impl ProgramPrefs
 {
     pub fn get_preferred_profile(&self) -> String {
-        self.preferred_profile.clone()
+        self.preferred_profile.to_owned()
     }
 
     pub fn set_preferred_profile(&mut self, profile_dir: &str)
@@ -148,13 +152,43 @@ impl ChromeInterface
     pub fn new() -> Self
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
-        let chrome_interface = ChromeInterface {
-            statefile_path : Path::join(Path::new(OsStr::new(&local_app_data)),"Google/Chrome/User Data/Local State").into_os_string(),
+        let browser_appdata_dir = registry_utils::Browser::Brave.get_definition().unwrap().app_data_dir;
+        let mut chrome_interface = ChromeInterface {
+            statefile_path : Path::join(Path::new(OsStr::new(&local_app_data)),format!("{browser_appdata_dir}/User Data/Local State")).into_os_string(),
             profile_entries: Vec::new(),
             prefs: ProgramPrefs::default(),
         };
 
+        if let Err(err) = chrome_interface.read_prefs()
+        {
+            error!("failed to read prefs: {err}");
+        }
+
+        
         chrome_interface
+    }
+
+    pub fn get_default_browser(&mut self) -> registry_utils::Browser
+    {
+
+        if let Ok(Some(browser)) = registry_utils::get_default_browser() {
+            if self.prefs().default_browser != browser.to_string()
+            {
+                self.prefs_mut().default_browser = browser.to_string();
+                if let Err(err) = self.write_prefs()
+                {
+                    error!("error writing prefs: {err}");
+                }
+            }
+        }
+
+        let default_browser_string = self.prefs().default_browser.to_owned();
+        let mut default_browser = registry_utils::Browser::try_from(&default_browser_string);
+        if default_browser.is_err() {
+            default_browser = Ok(registry_utils::Browser::Chrome);
+        }
+
+        return default_browser.unwrap();
     }
 
     pub fn prefs(&self) -> &ProgramPrefs

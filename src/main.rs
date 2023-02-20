@@ -27,7 +27,7 @@ const DETACHED_PROCESS: u32 = 0x00000008;
 
 fn soft_panic(url: &String)
 {
-    open_url_in_chrome_and_exit(url, &String::default(), true);
+    open_url_in_chrome_and_exit(&registry_utils::Browser::Chrome, url, &String::default(), true);
 }
 
 #[derive(Parser, Debug)]
@@ -79,7 +79,7 @@ async fn main() {
             // there's probably a less hairy way of doing this, but I'm not rust ninja enough yet
             let mut url_str = str::from_utf8(&PANIC_URL).unwrap();
             url_str = &url_str[0..PANIC_URL.into_iter().position(|r| { r == 0 }).unwrap()];
-            open_url_in_chrome_and_exit(&String::from(url_str), &String::default(), false);
+            open_url_in_chrome_and_exit(&registry_utils::Browser::Chrome, &String::from(url_str), &String::default(), false);
         }
     }));
 
@@ -102,11 +102,11 @@ async fn main() {
     let device_state = DeviceState::new();
     let keys: Vec<Keycode> = device_state.get_keys();
     let preferred_profile = chrome.prefs().get_preferred_profile();
+    let default_browser = chrome.get_default_browser();
     if (!args.force_ui && !keys.contains(&Keycode::LAlt)) && !args.url.is_empty() && !preferred_profile.is_empty()
     {
-        open_url_in_chrome_and_exit(&args.url, &preferred_profile, true);
+        open_url_in_chrome_and_exit(&default_browser, &args.url, &preferred_profile, true);
     }
-
 
 
     let mut app_height = (chrome.profile_entries.len() as f32) * (MyApp::BUTTON_SIZE + 15.0) + 50.0; // need plenty of space for context menu on bottom button
@@ -155,8 +155,9 @@ async fn main() {
             Box::new(MyApp {chrome_interface: ci_arcm,
                 url: args.url,
                 device_state: DeviceState::new(),
-                main_begin_time,
-                is_default_browser })),
+                main_begin_time: main_begin_time,
+                is_default_browser: is_default_browser,
+                default_browser: default_browser })),
     );
     
 }
@@ -167,6 +168,7 @@ struct MyApp {
     device_state: DeviceState,
     main_begin_time: Instant,
     is_default_browser: bool,
+    default_browser: registry_utils::Browser,
 }
 
 impl MyApp
@@ -187,6 +189,24 @@ impl eframe::App for MyApp {
         egui::CentralPanel::default().show(ctx, |ui| {
 
             if !self.is_default_browser {
+                if let Ok(Some(default_browser)) = registry_utils::get_default_browser()
+                {
+                    let ci_lock = self.chrome_interface.lock();
+                    let mut ci = ci_lock.unwrap();
+                    let mut prefs = ci.prefs_mut();
+                    if let Ok(browser) = registry_utils::Browser::try_from(&prefs.default_browser)
+                    {
+                        if browser == registry_utils::Browser::Unknown
+                        {
+                            prefs.default_browser = default_browser.to_string();
+                            if let Err(err) = ci.write_prefs()
+                            {
+                                error!("Failed to write prefs: {err}");
+                            }
+                        }
+                    }
+                }
+
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     ui.scope(|ui| {
                         ui.style_mut().visuals.override_text_color = Some(Color32::from_rgba_unmultiplied(255, 123, 0, 255));
@@ -231,7 +251,14 @@ impl eframe::App for MyApp {
             egui::Grid::new("some_unique_id").show(ui, |ui| {
 
                 ui.label("");
-                ui.label("Profile");
+
+                let mut default_browser_name = self.default_browser.to_string();
+                if let Some(browser_name) = default_browser_name.get_mut(0..1)
+                {
+                    browser_name.make_ascii_uppercase();
+                }
+    
+                 ui.label(format!("{} Profile", default_browser_name));
                 ui.end_row();
 
                 let chrome_lock = self.chrome_interface.lock();
@@ -295,7 +322,7 @@ impl eframe::App for MyApp {
                             exit_after_open_url = false;
                         }
 
-                        open_url_in_chrome_and_exit(&self.url, &profile_entry.profile_directory.clone(), exit_after_open_url);
+                        open_url_in_chrome_and_exit(&self.default_browser, &self.url, &profile_entry.profile_directory.clone(), exit_after_open_url);
                     }
                     
                     ui.scope(|ui| {
@@ -323,21 +350,25 @@ impl eframe::App for MyApp {
                         error!("couldn't write prefs: {}", e);
                     }
                 }
-            });
+            }); // grid
+
         });
     }
 }
 
-fn open_url_in_chrome_and_exit(url: &String, profile_name: &String, exit_when_done: bool)
+fn open_url_in_chrome_and_exit(browser: &registry_utils::Browser, url: &String, profile_name: &String, exit_when_done: bool)
 {
     debug!("url: {}", url);
     let mut chrome_command_line: String = String::default();
-    match registry_utils::get_chrome_exe()
+    match registry_utils::get_browser_exe(browser)
     {
-        Err(e) => error!("failed to get chrome open command: {}", e),
+        Err(e) => error!("failed to get browser exe location: {}", e),
         Ok(v) => chrome_command_line = v,
     }
 
+    // todo: break the open commands by argument, keep them in order, replace the one with %1 with the url
+    // for now we assume all chromium browsers play nice with these arguments
+    
     let mut chrome_command = Command::new(chrome_command_line);
     chrome_command.creation_flags(DETACHED_PROCESS);
 
@@ -346,6 +377,7 @@ fn open_url_in_chrome_and_exit(url: &String, profile_name: &String, exit_when_do
     }
     
     chrome_command.arg("--single-argument").arg(url);
+
 
     let chrome_command_child_result = chrome_command.spawn();
 
