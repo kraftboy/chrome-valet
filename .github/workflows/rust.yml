@@ -69,6 +69,8 @@ jobs:
     - if: github.event.inputs.is_release == 'true'
       name: Bump version
       run: | 
+        git config user.name github-actions
+        git config user.email github-actions@github.com
         cargo bump minor
         git commit -a -m "bumped version"
       
