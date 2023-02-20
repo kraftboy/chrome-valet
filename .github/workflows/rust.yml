@@ -75,6 +75,7 @@ jobs:
         git config user.email github-actions@github.com
         cargo bump minor
         git commit -a -m "bumped version"
+        git push origin main --set-upstream
       
     - name: Build Debug
       run: cargo build --verbose
