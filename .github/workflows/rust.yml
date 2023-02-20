@@ -24,7 +24,6 @@ env:
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
@@ -76,11 +75,13 @@ jobs:
       
     - name: Build Debug
       run: cargo build --verbose
+      
     - name: Build Release
       run: cargo build --release --verbose
         
     - name: Build wix
       run: cargo wix --verbose
+      
     - name: Run tests
       run: cargo test --verbose
       
@@ -94,6 +95,7 @@ jobs:
         path: |
           target/debug/*.exe
           target/release/*.exe
+          
     - name: Installer Artifact
       uses: actions/upload-artifact@v3
       with:
