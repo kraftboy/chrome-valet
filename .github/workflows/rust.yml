@@ -11,10 +11,10 @@ on:
       - '.github/workflows/rust.yml'
   workflow_dispatch:
     inputs: 
-      is_release
-          description: 'if this should bump minor version and distribute to release server'
-          required: false
-          default: 'false'
+      is_release:
+        description: 'if this should bump minor version and distribute to release server'
+        required: false
+        default: 'false'
           
   pull_request:
     branches: [ "main" ]
