@@ -30,7 +30,7 @@ jobs:
         restore-keys: windows-target-
 
     - name: get dir
-      run: ls -l
+      run: ls -l target/wix
       
     - name: Check msi existence
       id: check_files
