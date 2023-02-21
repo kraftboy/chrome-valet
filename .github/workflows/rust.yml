@@ -46,7 +46,10 @@ jobs:
           ~/.cargo/git/db/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: windows-cargo-
-        
+
+    - name: Get version
+      run: echo "CV_VERSION=$(cargo get version)" >> $env:GITHUB_ENV
+      
     - name: Set up target cache
       id: target_cache
       uses: actions/cache@v3
@@ -54,7 +57,7 @@ jobs:
       with:
         path: |
           target/
-        key: ${{ runner.os }}-target-${{ hashFiles('**/target/**.exe') }}
+        key: ${{ runner.os }}-target-${{ env.CV_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
         enableCrossOsArchive: true
         restore-keys: windows-target-
         
@@ -104,7 +107,7 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
       
-    - name: Get version
+    - name: Get new version
       run: echo "CV_VERSION=$(cargo get version)" >> $env:GITHUB_ENV
       
     - name: Binaries Artifact
