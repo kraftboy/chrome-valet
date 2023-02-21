@@ -53,7 +53,6 @@ async fn main() {
 
     // lets us print to the console despite using windows subsystem (ie, process doesn't spawn console)
     // perhaps a to-do is to generate two binaries, one for console, the other not
-    /*
     #[cfg(target_os = "windows")]
     {
         use winapi::um::wincon::{AttachConsole, ATTACH_PARENT_PROCESS};
@@ -61,7 +60,7 @@ async fn main() {
             AttachConsole(ATTACH_PARENT_PROCESS);
         }
     }
-    */
+    
     // for tracking startup time
     let main_begin_time: Instant = Instant::now();
 
