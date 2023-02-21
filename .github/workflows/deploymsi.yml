@@ -29,6 +29,9 @@ jobs:
         key: windows-target-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: windows-target-
 
+    - name: get dir
+      run: ls -l target/wix
+      
     - name: Check msi existence
       id: check_files
       uses: andstor/file-existence-action@v2

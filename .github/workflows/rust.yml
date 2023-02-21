@@ -51,9 +51,9 @@ jobs:
       with:
         path: |
           target/
-        key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-target-${{ hashFiles('**/target/**.exe') }}
         enableCrossOsArchive: true
-        restore-keys: windows-wix-
+        restore-keys: windows-target-
         
     - name: Install cargo commands
       if: steps.cargo_cache.outputs.cache-hit != 'true'
