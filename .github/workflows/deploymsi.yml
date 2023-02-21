@@ -20,17 +20,12 @@ jobs:
       with:
         ref: ${{ github.event.client_payload.sha }}
 
-    - name: Set up target cache
-      uses: actions/cache/restore@v3
-      continue-on-error: false
+    - uses: actions/download-artifact@v3
       with:
-        path: |
-          target/
-        key: windows-target-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: windows-target-
+        name: chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi
 
-    - name: get dir
-      run: ls -l target/wix
+    - name: Display structure of downloaded files
+      run: ls -R
       
     - name: Check msi existence
       id: check_files
