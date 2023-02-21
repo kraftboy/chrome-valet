@@ -12,10 +12,13 @@ on:
   workflow_dispatch:
     inputs: 
       is_release:
-        description: 'if this should bump minor version and distribute to release server'
+        description: 'is this a release?'
         required: false
-        default: 'false'
-          
+        default: 'true'
+      is_patch:
+        description: 'is this a patch release?'
+        required: false
+        default: 'false'     
   pull_request:
     branches: [ "main" ]
 
@@ -69,13 +72,23 @@ jobs:
 # disable clippy for now, minimum value
 #    - name: Clippy
 #      run: cargo clippy
-      
-    - if: github.event.inputs.is_release == 'true'
-      name: Bump version
+
+    - name: Setup git config values
       run: | 
         git config user.name github-actions
         git config user.email github-actions@github.com
-        cargo bump minor
+        
+    - if: github.event.inputs.is_release == 'true' && github.event.inputs.is_patch == 'false'
+      name: Bump minor ver
+      run: cargo bump minor
+      
+    - if: github.event.inputs.is_release == 'true' && github.event.inputs.is_patch == 'true'
+      name: Bump patch ver
+      run: cargo bump patch
+      
+    - if: github.event.inputs.is_release == 'true'
+      name: Commit version bump
+      run: |
         git commit -am "bumped version"
         git push
       
