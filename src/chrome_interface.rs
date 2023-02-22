@@ -123,7 +123,10 @@ unsafe impl Send for ChromeProfilePicture {}
 #[derive(Default, Serialize, Deserialize)]
 pub struct ProgramPrefs
 {
+    #[serde(default)]
     pub preferred_profile: String,
+
+    #[serde(default)]
     pub default_browser: String
 }
 
