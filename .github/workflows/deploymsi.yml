@@ -20,7 +20,7 @@ jobs:
         id: download-artifact
         uses: dawidd6/action-download-artifact@v2
         with:
-          github_token: ${{secrets.VC_WORKFLOW_TOKEN}}
+          github_token: ${{secrets.CV_WORKFLOW_TOKEN}}
           workflow: rust.yml
           name: "chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
 
