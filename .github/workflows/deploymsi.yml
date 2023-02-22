@@ -16,37 +16,32 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.client_payload.sha }}
+      - name: Download artifact
+        id: download-artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          github_token: ${{secrets.CV_WORKFLOW_TOKEN}}
+          workflow: rust.yml
+          name: "chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
 
-    - name: Set up target cache
-      uses: actions/cache/restore@v3
-      continue-on-error: false
-      with:
-        path: |
-          target/
-        key: windows-target-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: windows-target-
+      - name: ls directory
+        run: |
+          ls -l
 
-    - name: get dir
-      run: ls -l target/wix
-      
-    - name: Check msi existence
-      id: check_files
-      uses: andstor/file-existence-action@v2
-      with:
-        files: "target/wix/chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
-          
-    - if: github.event.inputs.cv_version != '0.0.0' && steps.check_files.outputs.files_exists == 'true'
-      name: copy file via ssh password
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.SIRSONIC_HOST }}
-        username: ${{ secrets.SIRSONIC_USER }}
-        key: ${{ secrets.SIRSONIC_KEY }}
-        port: ${{ secrets.SIRSONIC_PORT }}
-        source: "target/wix/chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
-        target: "dl.sirsonic.com/releases/chrome_valet"
-        overwrite: true
-        strip_components: 2
+      - name: Check chrome_valet-${{ github.event.inputs.cv_version }} existence
+        id: check_files
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
+
+      - if: github.event.inputs.cv_version != '0.0.0' && steps.check_files.outputs.files_exists == 'true'
+        name: scp chrome_valet-${{ github.event.inputs.cv_version }} to release destination
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SIRSONIC_HOST }}
+          username: ${{ secrets.SIRSONIC_USER }}
+          key: ${{ secrets.SIRSONIC_KEY }}
+          port: ${{ secrets.SIRSONIC_PORT }}
+          source: "chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
+          target: "dl.sirsonic.com/releases/chrome_valet"
+          overwrite: true
