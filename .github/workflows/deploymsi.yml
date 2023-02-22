@@ -35,7 +35,7 @@ jobs:
           files: "chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
 
       - if: github.event.inputs.cv_version != '0.0.0' && steps.check_files.outputs.files_exists == 'true'
-        name: copy chrome_valet-${{ github.event.inputs.cv_version }} via ssh password
+        name: scp chrome_valet-${{ github.event.inputs.cv_version }} to release destination
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SIRSONIC_HOST }}
