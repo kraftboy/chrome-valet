@@ -14,6 +14,7 @@ use log::{error};
 use std::fmt::Display;
 
 use crate::registry_utils;
+use crate::registry_utils::Browser;
 
 const LOCALAPPDATA:&str = "LOCALAPPDATA";
 const PROGRAM_NAME:&str = "ChromeValet";
@@ -174,7 +175,7 @@ impl ChromeInterface
     pub fn new() -> Self
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
-        let browser_appdata_dir = registry_utils::Browser::Brave.get_definition().unwrap().app_data_dir;
+        let browser_appdata_dir = Browser::Chrome.get_definition().unwrap().app_data_dir;
         let mut chrome_interface = ChromeInterface {
             statefile_path : Path::join(Path::new(OsStr::new(&local_app_data)),format!("{browser_appdata_dir}/User Data/Local State")).into_os_string(),
             profile_entries: Vec::new(),
@@ -339,6 +340,14 @@ impl ChromeInterface
             },
         }
         
+        if let Ok(browser) = Browser::try_from(&self.prefs.default_browser) {
+            if browser!= Browser::Unknown {
+                let local_app_data = env::var(LOCALAPPDATA).unwrap();
+                let browser_appdata_dir = browser.get_definition().unwrap().app_data_dir;
+                self.statefile_path = Path::join(Path::new(OsStr::new(&local_app_data)),format!("{browser_appdata_dir}/User Data/Local State")).into_os_string();
+            }
+        }
+
         Ok(())
     }
 
