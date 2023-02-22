@@ -2,6 +2,9 @@
 
 // #[macro_use] extern crate quick_error;
 
+mod registry_utils;
+mod chrome_interface;
+
 use std::os::windows::process::CommandExt;
 use std::process::Command;
 use std::process::exit;
@@ -20,14 +23,14 @@ use egui::{Color32,Sense};
 use clap::Parser;
 use std::io;
 
-mod registry_utils;
-mod chrome_interface;
+use chrome_interface::ChromeInterface;
+use registry_utils::Browser;
 
 const DETACHED_PROCESS: u32 = 0x00000008;
 
 fn soft_panic(url: &String)
 {
-    open_url_in_chrome_and_exit(&registry_utils::Browser::Chrome, url, &String::default(), true);
+    open_url_in_chrome_and_exit(&Browser::Chrome, url, &String::default(), true);
 }
 
 #[derive(Parser, Debug)]
@@ -66,7 +69,14 @@ async fn main() {
 
     let args = Args::parse();
     match LevelFilter::from_str(args.log_level.as_str()) {
-        Ok(x) => simple_logging::log_to(io::stdout(), x),
+        Ok(x) => {
+            simple_logging::log_to(io::stdout(), x);
+            match simple_logging::log_to_file(ChromeInterface::app_data_dir().join("chromevalet.log"), x)
+            {
+                Err(err) => error!("couldn't log to chromevalet.log: {err}"),
+                Ok(_) => (),
+            }
+        },
         Err(x) => warn!("failed to set log level! logging off {:?}", x),
     }
 
@@ -78,11 +88,11 @@ async fn main() {
             // there's probably a less hairy way of doing this, but I'm not rust ninja enough yet
             let mut url_str = str::from_utf8(&PANIC_URL).unwrap();
             url_str = &url_str[0..PANIC_URL.into_iter().position(|r| { r == 0 }).unwrap()];
-            open_url_in_chrome_and_exit(&registry_utils::Browser::Chrome, &String::from(url_str), &String::default(), false);
+            open_url_in_chrome_and_exit(&Browser::Chrome, &String::from(url_str), &String::default(), false);
         }
     }));
 
-    let mut chrome = chrome_interface::ChromeInterface::new();
+    let mut chrome = ChromeInterface::new();
     if let Err(e) = chrome.read_prefs() {
         warn!("couldn't read prefs: {}", e);
     }
@@ -162,12 +172,12 @@ async fn main() {
 }
 
 struct MyApp {
-    chrome_interface: Arc<Mutex<chrome_interface::ChromeInterface>>,
+    chrome_interface: Arc<Mutex<ChromeInterface>>,
     url: String,
     device_state: DeviceState,
     main_begin_time: Instant,
     is_default_browser: bool,
-    default_browser: registry_utils::Browser,
+    default_browser: Browser,
 }
 
 impl MyApp
@@ -193,9 +203,9 @@ impl eframe::App for MyApp {
                     let ci_lock = self.chrome_interface.lock();
                     let mut ci = ci_lock.unwrap();
                     let mut prefs = ci.prefs_mut();
-                    if let Ok(browser) = registry_utils::Browser::try_from(&prefs.default_browser)
+                    if let Ok(browser) = Browser::try_from(&prefs.default_browser)
                     {
-                        if browser == registry_utils::Browser::Unknown
+                        if browser == Browser::Unknown
                         {
                             prefs.default_browser = default_browser.to_string();
                             if let Err(err) = ci.write_prefs()
@@ -355,7 +365,7 @@ impl eframe::App for MyApp {
     }
 }
 
-fn open_url_in_chrome_and_exit(browser: &registry_utils::Browser, url: &String, profile_name: &String, exit_when_done: bool)
+fn open_url_in_chrome_and_exit(browser: &Browser, url: &String, profile_name: &String, exit_when_done: bool)
 {
     debug!("url: {}", url);
     let mut chrome_command_line: String = String::default();

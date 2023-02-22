@@ -201,10 +201,14 @@ impl ChromeInterface
         &mut self.prefs
     }
 
-    fn my_prefs_path() -> PathBuf
+    pub fn app_data_dir() -> PathBuf
     {
         let local_app_data = env::var(LOCALAPPDATA).unwrap();
-        PathBuf::from(local_app_data).join(PROGRAM_NAME).join("prefs.json")
+        PathBuf::from(local_app_data).join(PROGRAM_NAME)
+    }
+    fn my_prefs_path() -> PathBuf
+    {
+        ChromeInterface::app_data_dir().join("prefs.json")
     }
 
     fn chrome_prefs_path(profile_dir: &String) -> PathBuf
