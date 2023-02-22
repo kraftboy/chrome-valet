@@ -97,9 +97,9 @@ async fn main() {
         warn!("couldn't read prefs: {}", e);
     }
 
-    if !chrome.populate_profile_entries()
+    if let Err(err) = chrome.populate_profile_entries()
     {
-        error!("couldn't get chrome profile(s)");
+        error!("couldn't get chrome profile(s): {}", err);
         soft_panic(&args.url);
     }
 

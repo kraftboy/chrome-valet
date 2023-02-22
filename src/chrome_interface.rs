@@ -6,11 +6,12 @@ use serde_json::{Value};
 use std::path::{Path, PathBuf};
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
-use std::io::{Write, Result as IoResult, ErrorKind as IoErrorKind};
+use std::io::{Error as IoErr, Write, Result as IoResult, ErrorKind as IoErrorKind};
 use std::sync::Arc;
 use egui::{ColorImage, Color32};
 use futures::lock::Mutex;
 use log::{error};
+use std::fmt::Display;
 
 use crate::registry_utils;
 
@@ -142,6 +143,24 @@ impl ProgramPrefs
     }
 }
 
+#[derive(Debug)]
+pub enum ChromeInterfaceError
+{
+    IoError(IoErr),
+    JsonFormatError(String),
+}
+
+impl Display for ChromeInterfaceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ChromeInterfaceError::IoError(io_err) => 
+                write!(f, "{}", io_err),
+                ChromeInterfaceError::JsonFormatError(errstr) => 
+                write!(f, "{}", errstr),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct ChromeInterface
 {
@@ -224,13 +243,6 @@ impl ChromeInterface
     {
         let reader = File::open(filepath)?;
         Ok(serde_json::from_reader(reader)?)
-
-        /*
-        match serde_json::from_reader(reader) {
-            Ok(v) => v,
-            Err(err) => Err(std::io::Error::new(std::io::ErrorKind::InvalidData, err))
-        }
-         */
     }
 
     fn open_local_statefile_as_object(&self) -> IoResult<Value>
@@ -261,10 +273,15 @@ impl ChromeInterface
         Self::write_to_file(file_path, file_contents.to_string().as_bytes())
     }
 
-    pub fn populate_profile_entries(&mut self) -> bool
+    pub fn populate_profile_entries(&mut self) -> Result<(), ChromeInterfaceError>
     {
-        let local_statefile_obj = self.open_local_statefile_as_object();
-        let mut json_profiles = &local_statefile_obj.unwrap_or(Value::default());
+        let local_statefile_result = self.open_local_statefile_as_object();
+        if local_statefile_result.is_err() 
+        {
+            return Err(ChromeInterfaceError::IoError(local_statefile_result.err().unwrap()))
+        }
+
+        let mut json_profiles = &local_statefile_result.unwrap();
         if json_profiles.is_object()
         {
             json_profiles = &json_profiles["profile"]["info_cache"];
@@ -305,10 +322,10 @@ impl ChromeInterface
                 self.profile_entries.push(chrome_profile_entry);
             }
 
-            return true;
+            return Ok(());
         }
         
-        false
+        Err(ChromeInterfaceError::JsonFormatError(format!("json_profiles not object: {}", json_profiles.to_string())))
     }
 
     pub fn read_prefs(&mut self) -> IoResult<()>
