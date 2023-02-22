@@ -44,19 +44,9 @@ jobs:
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
+          target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: windows-cargo-
-      
-    - name: Set up target cache
-      id: target_cache
-      uses: actions/cache@v3
-      continue-on-error: false
-      with:
-        path: |
-          target/
-        key: ${{ runner.os }}-target-${{ env.CV_VERSION }}-${{ hashFiles('target/**.exe') }}
-        enableCrossOsArchive: true
-        restore-keys: windows-target-
         
     - name: Install cargo commands
       if: steps.cargo_cache.outputs.cache-hit != 'true'
@@ -69,7 +59,7 @@ jobs:
     - name: Get Short SHA
       run: echo "GITHUB_SHA_SHORT=$(git rev-parse --short ${{github.sha}})" >> $env:GITHUB_ENV 
 
-# disable clippy for now, minimum value
+# disable clippy for now, not enough value atm
 #    - name: Clippy
 #      run: cargo clippy
 
