@@ -1,6 +1,6 @@
 [package]
 name = "chrome_valet"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["Garret Thomson <g@sirsonic.com>"]
 description = "A utility to open urls in a preferred chrome profile"
