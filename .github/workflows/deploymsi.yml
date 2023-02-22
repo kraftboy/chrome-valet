@@ -45,4 +45,3 @@ jobs:
           source: "chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
           target: "dl.sirsonic.com/releases/chrome_valet"
           overwrite: true
-          strip_components: 2
