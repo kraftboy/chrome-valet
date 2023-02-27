@@ -96,13 +96,7 @@ async fn main() {
     if let Err(e) = chrome.read_prefs() {
         warn!("couldn't read prefs: {}", e);
     }
-
-    if let Err(err) = chrome.populate_profile_entries()
-    {
-        error!("couldn't get chrome profile(s): {}", err);
-        soft_panic(&args.url);
-    }
-
+    
     // if ctrl pressed or no preferred profile
     //  open UI
     // else
@@ -117,6 +111,11 @@ async fn main() {
         open_url_in_chrome_and_exit(&default_browser, &args.url, &preferred_profile, true);
     }
 
+    if let Err(err) = chrome.populate_profile_entries()
+    {
+        error!("couldn't get chrome profile(s): {}", err);
+        soft_panic(&args.url);
+    }
 
     let mut app_height = (chrome.profile_entries.len() as f32) * (MyApp::BUTTON_SIZE + 15.0) + 50.0; // need plenty of space for context menu on bottom button
     let app_width = MyApp::PROFILE_BUTTON_WIDTH + MyApp::BUTTON_SIZE * 3.0 + 20.0; // profile button + button + margins (5px*3)
