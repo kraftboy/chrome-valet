@@ -153,6 +153,7 @@ async fn main() {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(app_width, app_height)),
         resizable: false,
+        centered: true,
         // decorated: false,
         ..Default::default()
     };
