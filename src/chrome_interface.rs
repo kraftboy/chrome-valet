@@ -8,7 +8,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{Error as IoErr, Write, Result as IoResult, ErrorKind as IoErrorKind};
 use std::sync::Arc;
-use egui::{ColorImage, Color32};
+use eframe::egui;
 use futures::lock::Mutex;
 use log::{error};
 use std::fmt::Display;
@@ -22,7 +22,7 @@ const PROGRAM_NAME:&str = "ChromeValet";
 pub struct ChromeProfilePicture
 {
     picture_filename: OsString,
-    pub img: Option<ColorImage>,
+    pub img: Option<egui::ColorImage>,
     pub profile_texture: Option<egui::TextureHandle>,
     pub profile_color: [u8; 4],
 }
@@ -70,7 +70,7 @@ impl ChromeProfilePicture {
             
             if dist > (half_dim as f32)
             {
-                *pixel = Color32::from_rgba_unmultiplied(pixel.r(), pixel.g(), pixel.b(), 0);
+                *pixel = egui::Color32::from_rgba_unmultiplied(pixel.r(), pixel.g(), pixel.b(), 0);
             }
 
             if x == 0
@@ -103,7 +103,7 @@ impl ChromeProfilePicture {
             let image_size = 128;
             let red_pixels = self.profile_color.iter().cloned().cycle();
             let image_array = red_pixels.take(image_size * image_size * self.profile_color.len()).collect::<Vec<u8>>();
-            self.img = Some(ColorImage::from_rgba_unmultiplied([image_size, image_size], &image_array));
+            self.img = Some(egui::ColorImage::from_rgba_unmultiplied([image_size, image_size], &image_array));
         }
 
         self.apply_circle_mask();

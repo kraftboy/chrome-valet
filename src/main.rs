@@ -19,7 +19,6 @@ use std::time::Instant;
 
 use eframe::egui;
 use device_query::{DeviceQuery, DeviceState, Keycode};
-use egui::{Color32,Sense};
 use clap::Parser;
 use std::io;
 
@@ -150,7 +149,7 @@ async fn main() {
 
     // actually run the app
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(app_width, app_height)),
+        initial_window_size: Some(eframe::egui::vec2(app_width, app_height)),
         resizable: false,
         centered: true,
         // decorated: false,
@@ -167,8 +166,7 @@ async fn main() {
                 main_begin_time: main_begin_time,
                 is_default_browser: is_default_browser,
                 default_browser: default_browser })),
-    );
-    
+    ).unwrap(); 
 }
 
 struct MyApp {
@@ -193,9 +191,9 @@ impl eframe::App for MyApp {
         false
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         
-        egui::CentralPanel::default().show(ctx, |ui| {
+        eframe::egui::CentralPanel::default().show(ctx, |ui| {
 
             if !self.is_default_browser {
                 if let Ok(Some(default_browser)) = registry_utils::get_default_browser()
@@ -218,7 +216,7 @@ impl eframe::App for MyApp {
 
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     ui.scope(|ui| {
-                        ui.style_mut().visuals.override_text_color = Some(Color32::from_rgba_unmultiplied(255, 123, 0, 255));
+                        ui.style_mut().visuals.override_text_color = Some(egui::Color32::from_rgba_unmultiplied(255, 123, 0, 255));
                         ui.add_sized(egui::vec2(240.0, 50.0), egui::Label::new("Chrome Valet must be set as default browser to work.").wrap(true));
                     });
                     if ui.add(egui::Button::new("Open default app settings").wrap(true)).clicked()
@@ -246,7 +244,7 @@ impl eframe::App for MyApp {
                                 ui.add_sized(egui::vec2(300.0, 100.0), egui::Label::new(self.url.clone()));
                             });
                         
-                        let clipboard_label = egui::Label::new("📋").sense(Sense::click());
+                        let clipboard_label = egui::Label::new("📋").sense(egui::Sense::click());
                         if ui.add(clipboard_label).clicked()
                         {
                             cli_clipboard::set_contents(self.url.to_owned()).unwrap();
@@ -288,7 +286,7 @@ impl eframe::App for MyApp {
                         if profile_picture.img.is_some()
                         {
                             let profile_image_copy = profile_picture.img.clone();
-                            let texture: &egui::TextureHandle = profile_picture.profile_texture.get_or_insert_with(|| {
+                            let texture = profile_picture.profile_texture.get_or_insert_with(|| {
 
                                 trace!("Time until profile texture load: {:5} millis", self.main_begin_time.elapsed().as_millis());
 
@@ -319,7 +317,7 @@ impl eframe::App for MyApp {
                     
                     // if there's no url, the buttons do nothing
                     if self.url.is_empty() {
-                        button = button.sense(Sense::hover());
+                        button = button.sense(egui::Sense::hover());
                     }
 
                     if ui.add_sized(egui::vec2(200.0, MyApp::BUTTON_SIZE), button).clicked() {
@@ -336,7 +334,7 @@ impl eframe::App for MyApp {
                     
                     ui.scope(|ui| {
                         if preferred_profile == profile_entry.profile_directory {
-                            ui.style_mut().visuals.override_text_color = Some(Color32::from_rgba_unmultiplied(255, 0, 0, 196));
+                            ui.style_mut().visuals.override_text_color = Some(egui::Color32::from_rgba_unmultiplied(255, 0, 0, 196));
                         }
 
                         let button = egui::widgets::Button::new("♡");
