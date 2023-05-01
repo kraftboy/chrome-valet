@@ -47,6 +47,10 @@ struct Args {
     /// force ui to open
     #[arg(long, default_value = "false")]
     force_ui: bool,
+
+    #[cfg(debug_assertions)]
+    #[arg(long, default_value = "false")]
+    fake_default: bool,
 }
 
 static mut PANIC_URL: [u8; 2048] = [0; 2048];
@@ -138,14 +142,14 @@ async fn main() {
         soft_panic(&args.url);
     }
 
-    let mut app_height = (chrome.profile_entries.len() as f32) * (MyApp::BUTTON_SIZE + 15.0) + 50.0; // need plenty of space for context menu on bottom button
+    let mut app_height = (chrome.profile_entries.len() as f32) * (MyApp::BUTTON_SIZE + 15.0) + 75.0; // need plenty of space for context menu on bottom button
     let app_width = MyApp::PROFILE_BUTTON_WIDTH + MyApp::BUTTON_SIZE * 3.0 + 20.0; // profile button + button + margins (5px*3)
 
     let mut is_default_browser = true;
     if let Ok(x) = registry_utils::is_default_browser() {
-        if !x {
+        if !x && !args.fake_default {
             is_default_browser = false;
-            app_height += 100.0; // more height for 'not set as default browser' ui widget
+            app_height += 75.0; // more height for 'not set as default browser' ui widget
         }
     } else {
         error!("Couldn't do default browser detection");
@@ -251,7 +255,7 @@ impl MyApp {
         // show the user which url we're talking about
         if let Some(url) = self.url.clone() {
             let trimmed_url_for_display = url.clone();
-            let trim_len = 32;
+            let trim_len = 30;
             let trimmed_url_for_display = if trimmed_url_for_display.len() > trim_len {
                 trimmed_url_for_display[0..trim_len].to_string() + "..."
             } else {
@@ -259,18 +263,16 @@ impl MyApp {
             };
 
             ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
-                ui.scope(|ui| {
-                    ui.style_mut().override_text_style = Some(egui::style::TextStyle::Monospace);
-                    let my_label = egui::Label::new(format!("URL: {trimmed_url_for_display}"));
-                    ui.add(my_label).on_hover_ui(|ui| {
-                        ui.add_sized(egui::vec2(300.0, 100.0), egui::Label::new(&url));
-                    });
-
-                    let clipboard_label = egui::Label::new("📋").sense(egui::Sense::click());
-                    if ui.add(clipboard_label).clicked() {
-                        cli_clipboard::set_contents(url).unwrap();
-                    }
+                ui.style_mut().override_text_style = Some(egui::style::TextStyle::Monospace);
+                let my_label = egui::Label::new(format!("URL: {trimmed_url_for_display}"));
+                ui.add(my_label).on_hover_ui(|ui| {
+                    ui.add_sized(egui::vec2(300.0, 100.0), egui::Label::new(&url));
                 });
+
+                let clipboard_label = egui::Label::new("📋").sense(egui::Sense::click());
+                if ui.add(clipboard_label).clicked() {
+                    cli_clipboard::set_contents(url).unwrap();
+                }
             });
         }
     }

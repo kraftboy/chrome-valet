@@ -4,7 +4,6 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
@@ -23,7 +22,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
             "preLaunchTask": "rust: cargo build",
-            "args": ["--url", "https://www.google.com/search?q=garret+thomson&A=foo&b=bar"],
+            "args": [
+                "--url",
+                "https://www.google.com/search?q=garret+thomson&A=foo&b=bar"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -35,7 +37,28 @@
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
             "preLaunchTask": "rust: cargo build",
-            "args": ["--force-ui", "--url", "https://www.google.com/search?q=garret+thomson&A=foo&b=bar"],
+            "args": [
+                "--force-ui",
+                "--url",
+                "https://www.google.com/search?q=garret+thomson&A=foo&b=bar"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "(Windows) Launch /w URL and open UI, force default browser",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
+            "preLaunchTask": "rust: cargo build",
+            "args": [
+                "--force-ui",
+                "--fake-default",
+                "--url",
+                "https://www.google.com/search?q=garret+thomson&A=foo&b=bar"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -47,7 +70,9 @@
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
             "preLaunchTask": "rust: cargo build",
-            "args": ["--create-keys"],
+            "args": [
+                "--create-keys"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -59,7 +84,11 @@
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
             "preLaunchTask": "rust: cargo build",
-            "args": ["--delete-keys", "--log-level", "debug"],
+            "args": [
+                "--delete-keys",
+                "--log-level",
+                "debug"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
