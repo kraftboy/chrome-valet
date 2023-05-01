@@ -3,6 +3,7 @@
 // #[macro_use] extern crate quick_error;
 
 mod chrome_interface;
+mod custom_frame;
 mod registry_utils;
 
 use clap::Parser;
@@ -173,7 +174,8 @@ async fn main() {
         initial_window_size: Some(eframe::egui::vec2(app_width, app_height)),
         resizable: false,
         centered: true,
-        // decorated: false,
+        decorated: false,
+        transparent: true,
         ..Default::default()
     };
 
@@ -251,12 +253,12 @@ impl MyApp {
             let trimmed_url_for_display = url.clone();
             let trim_len = 32;
             let trimmed_url_for_display = if trimmed_url_for_display.len() > trim_len {
-                &trimmed_url_for_display[0..trim_len]
+                trimmed_url_for_display[0..trim_len].to_string() + "..."
             } else {
-                trimmed_url_for_display.as_str()
+                trimmed_url_for_display
             };
 
-            ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
                 ui.scope(|ui| {
                     ui.style_mut().override_text_style = Some(egui::style::TextStyle::Monospace);
                     let my_label = egui::Label::new(format!("URL: {trimmed_url_for_display}"));
@@ -272,15 +274,9 @@ impl MyApp {
             });
         }
     }
-}
 
-impl eframe::App for MyApp {
-    fn persist_native_window(&self) -> bool {
-        false
-    }
-
-    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        eframe::egui::CentralPanel::default().show(ctx, |ui| {
+    fn main_panel_contents(&mut self, ui: &mut egui::Ui, _ctx: &egui::Context) {
+        {
             self.default_browser_check(ui);
 
             self.show_url(ui);
@@ -398,6 +394,22 @@ impl eframe::App for MyApp {
                     }
                 }
             }); // grid
+        }
+    }
+}
+
+impl eframe::App for MyApp {
+    fn persist_native_window(&self) -> bool {
+        false
+    }
+
+    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+        egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
+    }
+
+    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+        custom_frame::custom_window_frame(ctx, frame, "Chrome Valet", |ui| {
+            self.main_panel_contents(ui, ctx);
         });
     }
 }
