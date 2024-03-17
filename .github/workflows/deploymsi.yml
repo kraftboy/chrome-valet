@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Download artifact
         id: download-artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v3
         with:
           github_token: ${{secrets.CV_WORKFLOW_TOKEN}}
           workflow: rust.yml
@@ -30,7 +30,7 @@ jobs:
 
       - name: Check chrome_valet-${{ github.event.inputs.cv_version }} existence
         id: check_files
-        uses: andstor/file-existence-action@v2
+        uses: andstor/file-existence-action@v3
         with:
           files: "chrome_valet-${{ github.event.inputs.cv_version }}-x86_64.msi"
 
