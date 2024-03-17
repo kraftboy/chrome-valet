@@ -9,6 +9,7 @@ mod registry_utils;
 use clap::Parser;
 use device_query::{DeviceQuery, DeviceState, Keycode};
 use eframe::egui;
+use eframe::egui::load::SizedTexture;
 use log::LevelFilter;
 use log::{debug, error, trace, warn};
 use std::io;
@@ -179,11 +180,12 @@ async fn main() {
 
     // actually run the app
     let options = eframe::NativeOptions {
-        initial_window_size: Some(eframe::egui::vec2(app_width, app_height)),
-        resizable: false,
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size(eframe::egui::vec2(app_width, app_height))
+            .with_resizable(false)
+            .with_decorations(false)
+            .with_transparent(true),
         centered: true,
-        decorated: false,
-        transparent: true,
         ..Default::default()
     };
 
@@ -222,7 +224,7 @@ impl MyApp {
             if let Ok(Some(default_browser)) = registry_utils::get_default_browser() {
                 let ci_lock = self.chrome_interface.lock();
                 let mut ci = ci_lock.unwrap();
-                let mut prefs = ci.prefs_mut();
+                let prefs = ci.prefs_mut();
                 if let Ok(browser) = Browser::try_from(&prefs.default_browser) {
                     if browser == Browser::Unknown {
                         prefs.default_browser = default_browser.to_string();
@@ -359,8 +361,8 @@ impl MyApp {
                     )
                 });
 
-                let image =
-                    egui::Image::new(texture, egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
+                let sized_texture = SizedTexture::new(texture, egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
+                let image = egui::Image::new(sized_texture);
                 ui.add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), image);
             } else {
                 let button = egui::Button::new("error")
@@ -423,16 +425,13 @@ impl MyApp {
 }
 
 impl eframe::App for MyApp {
-    fn persist_native_window(&self) -> bool {
-        false
-    }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
         egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
     }
 
-    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
-        custom_frame::custom_window_frame(ctx, frame, "Chrome Valet", |ui| {
+    fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
+        custom_frame::custom_window_frame(ctx,  "Chrome Valet", |ui| {
             self.main_panel_contents(ui, ctx);
         });
     }
