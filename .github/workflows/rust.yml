@@ -95,7 +95,7 @@ jobs:
       run: cargo test --verbose
       
     - name: Get new version
-      run: echo "CV_VERSION=$(cargo get version)" >> $env:GITHUB_ENV
+      run: echo "CV_VERSION=$(cargo-get package.version)" >> $env:GITHUB_ENV
       
     - name: Binaries Artifact
       uses: actions/upload-artifact@v3
