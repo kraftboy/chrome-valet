@@ -53,9 +53,9 @@ struct Args {
     #[arg(
         long,
         default_value = "false",
-        help = "chrome_valet assumes it is the default browser and doesn't show any warnings about not being so"
+        help = "disable the warning if chrome valet is not the default browser"
     )]
-    fake_default: bool,
+    disable_default_browser_warning: bool,
 }
 
 static mut PANIC_URL: [u8; 2048] = [0; 2048];
@@ -152,7 +152,12 @@ async fn main() {
 
     let mut is_default_browser = true;
     if let Ok(x) = registry_utils::is_default_browser() {
-        if !x && !args.fake_default {
+        #[cfg(debug_assertions)]
+        let no_warning = args.disable_default_browser_warning;
+        #[cfg(not(debug_assertions))]
+        let no_warning = false;
+
+        if !x && !no_warning {
             is_default_browser = false;
             app_height += 75.0; // more height for 'not set as default browser' ui widget
         }
