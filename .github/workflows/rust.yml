@@ -14,7 +14,7 @@ on:
       is_release:
         description: 'is this a release?'
         required: false
-        default: 'true'
+        default: 'false'
       is_patch:
         description: 'is this a patch release?'
         required: false
