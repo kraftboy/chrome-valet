@@ -22,7 +22,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Instant;
 
-use chrome_interface::ChromeInterface;
+use chrome_interface::{ChromeInterface, ChromeProfileEntry};
 use registry_utils::Browser;
 
 const DETACHED_PROCESS: u32 = 0x00000008;
@@ -49,7 +49,11 @@ struct Args {
     force_ui: bool,
 
     #[cfg(debug_assertions)]
-    #[arg(long, default_value = "false")]
+    #[arg(
+        long,
+        default_value = "false",
+        help = "chrome_valet assumes it is the default browser and doesn't show any warnings about not being so"
+    )]
     fake_default: bool,
 }
 
@@ -304,91 +308,27 @@ impl MyApp {
 
                 let mut chrome_interface = chrome_lock.unwrap();
                 let prefs = chrome_interface.prefs();
-                let last_preferred_profile = prefs.get_preferred_profile();
-                let mut preferred_profile = last_preferred_profile.clone();
+                let preferred_profile = prefs.get_preferred_profile();
+                let mut new_preferred_profile = preferred_profile.clone();
 
                 for profile_entry in &chrome_interface.profile_entries {
-                    let mut lock = profile_entry.profile_picture.try_lock();
-                    if let Some(ref mut _mutex) = lock {
-                        let mut profile_picture = lock.unwrap();
-                        if profile_picture.img.is_some() {
-                            let profile_image_copy = profile_picture.img.clone();
-                            let texture =
-                                profile_picture.profile_texture.get_or_insert_with(|| {
-                                    trace!(
-                                        "Time until profile texture load: {:5} millis",
-                                        self.main_begin_time.elapsed().as_millis()
-                                    );
+                    self.draw_profile_icon(ui, profile_entry);
 
-                                    // Load the texture only once.
-                                    ui.ctx().load_texture(
-                                        format!(
-                                            "{} Profile Pic Texture",
-                                            profile_entry.profile_name
-                                        ),
-                                        profile_image_copy.unwrap(),
-                                        Default::default(),
-                                    )
-                                });
+                    self.draw_profile_label_button(ui, profile_entry);
 
-                            let image = egui::Image::new(
-                                texture,
-                                egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE),
-                            );
-                            ui.add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), image);
-                        } else {
-                            let button = egui::Button::new("error")
-                                .min_size(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
-                            ui.add_enabled(false, button);
-                        }
-                    };
-
-                    let mut button = egui::Button::new(profile_entry.profile_name.clone());
-
-                    // if there's no url, the buttons do nothing
-                    if self.url.is_none() {
-                        button = button.sense(egui::Sense::hover());
-                    }
-
-                    if ui
-                        .add_sized(egui::vec2(200.0, MyApp::BUTTON_SIZE), button)
-                        .clicked()
-                    {
-                        let mut exit_after_open_url = true;
-                        let keys: Vec<Keycode> = self.device_state.get_keys();
-                        if keys.contains(&Keycode::LShift) {
-                            exit_after_open_url = false;
-                        }
-
-                        open_url_in_chrome(
-                            &self.default_browser,
-                            &self.url.as_ref().unwrap(),
-                            Some(&profile_entry.profile_directory.clone()),
-                            exit_after_open_url,
-                        );
-                    }
-
-                    ui.scope(|ui| {
-                        if preferred_profile == profile_entry.profile_directory {
-                            ui.style_mut().visuals.override_text_color =
-                                Some(egui::Color32::from_rgba_unmultiplied(255, 0, 0, 196));
-                        }
-
-                        let button = egui::widgets::Button::new("♡");
-                        if ui
-                            .add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), button)
-                            .clicked()
-                        {
-                            preferred_profile = profile_entry.profile_directory.clone();
-                        }
-                    });
+                    // may update preferred_profile
+                    self.draw_preferred_profile_button(
+                        ui,
+                        profile_entry,
+                        &mut new_preferred_profile,
+                    );
 
                     ui.end_row();
                 } // for profile entry
 
-                if last_preferred_profile != preferred_profile {
+                if preferred_profile != new_preferred_profile {
                     let prefs = chrome_interface.prefs_mut();
-                    prefs.set_preferred_profile(&preferred_profile);
+                    prefs.set_preferred_profile(&new_preferred_profile);
 
                     // todo: do this right in prefs once I pull out all the file stuff
                     if let Err(e) = chrome_interface.write_prefs() {
@@ -397,6 +337,88 @@ impl MyApp {
                 }
             }); // grid
         }
+    }
+
+    fn draw_profile_icon(&self, ui: &mut egui::Ui, profile_entry: &ChromeProfileEntry) {
+        let mut profilepicture_lock = profile_entry.profile_picture.try_lock();
+        if let Some(ref mut _mutex) = profilepicture_lock {
+            let mut profile_picture = profilepicture_lock.unwrap();
+            if profile_picture.img.is_some() {
+                let profile_image_copy = profile_picture.img.clone();
+                let texture = profile_picture.profile_texture.get_or_insert_with(|| {
+                    trace!(
+                        "Time until profile texture load: {:5} millis",
+                        self.main_begin_time.elapsed().as_millis()
+                    );
+
+                    // Load the texture only once.
+                    ui.ctx().load_texture(
+                        format!("{} Profile Pic Texture", profile_entry.profile_name),
+                        profile_image_copy.unwrap(),
+                        Default::default(),
+                    )
+                });
+
+                let image =
+                    egui::Image::new(texture, egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
+                ui.add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), image);
+            } else {
+                let button = egui::Button::new("error")
+                    .min_size(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE));
+                ui.add_enabled(false, button);
+            }
+        };
+    }
+
+    fn draw_profile_label_button(&self, ui: &mut egui::Ui, profile_entry: &ChromeProfileEntry) {
+        let mut button = egui::Button::new(profile_entry.profile_name.clone());
+
+        // if there's no url, the buttons do nothing
+        if self.url.is_none() {
+            button = button.sense(egui::Sense::hover());
+        }
+
+        if ui
+            .add_sized(egui::vec2(200.0, MyApp::BUTTON_SIZE), button)
+            .clicked()
+        {
+            // if shift down, chrome_valet remains open
+            let mut exit_after_open_url = true;
+            let keys: Vec<Keycode> = self.device_state.get_keys();
+            if keys.contains(&Keycode::LShift) {
+                exit_after_open_url = false;
+            }
+
+            // user clicked on profile, open link
+            open_url_in_chrome(
+                &self.default_browser,
+                &self.url.as_ref().unwrap(),
+                Some(&profile_entry.profile_directory.clone()),
+                exit_after_open_url,
+            );
+        }
+    }
+
+    fn draw_preferred_profile_button(
+        &self,
+        ui: &mut egui::Ui,
+        profile_entry: &ChromeProfileEntry,
+        preferred_profile: &mut String,
+    ) {
+        ui.scope(|ui| {
+            if *preferred_profile == profile_entry.profile_directory {
+                ui.style_mut().visuals.override_text_color =
+                    Some(egui::Color32::from_rgba_unmultiplied(255, 0, 0, 196));
+            }
+
+            let button = egui::widgets::Button::new("♡");
+            if ui
+                .add_sized(egui::vec2(MyApp::BUTTON_SIZE, MyApp::BUTTON_SIZE), button)
+                .clicked()
+            {
+                *preferred_profile = profile_entry.profile_directory.clone();
+            }
+        });
     }
 }
 

@@ -79,6 +79,7 @@ impl ChromeProfilePicture {
             x %= dim;
         }
     }
+
     pub async fn get_picture(&mut self) -> Result<(), image::ImageError> {
         if !self.picture_filename.is_empty() {
             fn load_image_from_path(
@@ -107,7 +108,6 @@ impl ChromeProfilePicture {
                 &image_array,
             ));
         }
-
         self.apply_circle_mask();
 
         Ok(())
@@ -252,7 +252,7 @@ impl ChromeInterface {
                     None => OsString::default(),
                 };
 
-                let mut profile_color: [u8; 4] = [0, 0, 0, 0];
+                let mut profile_color: [u8; 4] = [128, 128, 128, 0];
                 if let Some(e) = entry_data.get_key_value("default_avatar_fill_color") {
                     let colour = e.1.as_i64().unwrap_or_default();
                     // color is argb
