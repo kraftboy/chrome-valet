@@ -85,7 +85,7 @@ impl ChromeProfilePicture {
             fn load_image_from_path(
                 path: &std::path::Path,
             ) -> Result<Option<egui::ColorImage>, image::ImageError> {
-                let image = image::io::Reader::open(path)?.decode()?;
+                let image = image::ImageReader::open(path)?.decode()?;
                 let size = [image.width() as _, image.height() as _];
                 let image_buffer = image.to_rgba8();
                 let pixels = image_buffer.as_flat_samples();

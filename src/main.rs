@@ -8,7 +8,6 @@ mod registry_utils;
 
 use clap::Parser;
 use device_query::{DeviceQuery, DeviceState, Keycode};
-use eframe::egui;
 use eframe::egui::load::SizedTexture;
 use log::LevelFilter;
 use log::{debug, error, trace, warn};
@@ -105,7 +104,7 @@ async fn main() {
             PANIC_URL[0..url.len()].copy_from_slice(url.as_bytes());
         };
         panic::set_hook(Box::new(|_| {
-            unsafe {
+            unsafe{
                 // there's probably a less hairy way of doing this, but I'm not rust ninja enough yet
                 let mut url_str = str::from_utf8(&PANIC_URL).unwrap();
                 url_str = &url_str[0..PANIC_URL.into_iter().position(|r| r == 0).unwrap()];
@@ -197,15 +196,16 @@ async fn main() {
     eframe::run_native(
         "Chrome Valet",
         options,
-        Box::new(move |_cc| {
-            Box::new(MyApp {
+        Box::new(move |cc| {
+            cc.egui_ctx.set_theme(egui::Theme::Dark);
+            Ok(Box::new(MyApp {
                 chrome_interface: ci_arcm,
                 url: args.url,
                 device_state: DeviceState::new(),
                 main_begin_time: main_begin_time,
                 is_default_browser: is_default_browser,
                 default_browser: default_browser,
-            })
+            }))
         }),
     )
     .unwrap();
@@ -222,7 +222,7 @@ struct MyApp {
 
 impl MyApp {
     const BUTTON_SIZE: f32 = 30.0;
-    const PROFILE_BUTTON_WIDTH: f32 = 200.0;
+    const PROFILE_BUTTON_WIDTH: f32 = 400.0;
 
     fn default_browser_check(&mut self, ui: &mut egui::Ui) {
         if !self.is_default_browser {
@@ -245,20 +245,20 @@ impl MyApp {
                     ui.style_mut().visuals.override_text_color =
                         Some(egui::Color32::from_rgba_unmultiplied(255, 123, 0, 255));
                     ui.add_sized(
-                        egui::vec2(240.0, 50.0),
+                        egui::vec2(400.0, 50.0),
                         egui::Label::new("Chrome Valet must be set as default browser to work.")
-                            .wrap(true),
+                            .wrap(),
                     );
                 });
                 if ui
-                    .add(egui::Button::new("Open default app settings").wrap(true))
+                    .add(egui::Button::new("Open default app settings").wrap())
                     .clicked()
                 {
                     open_default_apps();
                 }
             });
 
-            ui.separator();
+            ui.add_space(5.0);
         }
     }
 
@@ -296,53 +296,60 @@ impl MyApp {
 
             ui.separator();
 
-            egui::Grid::new("profile_grid").show(ui, |ui| {
-                ui.label("");
+            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
 
-                let mut default_browser_name = self.default_browser.to_string();
-                if let Some(browser_name) = default_browser_name.get_mut(0..1) {
-                    browser_name.make_ascii_uppercase();
-                }
+                egui::Grid::new("profile_grid").show(ui, |ui| {
 
-                ui.label(format!("{} Profile", default_browser_name));
-                ui.end_row();
+                    // fake a column to align browser name to profile button
+                    ui.label("");
 
-                let chrome_lock = self.chrome_interface.lock();
-                if chrome_lock.is_err() {
-                    error!("couldn't lock chrome_inteface!");
-                    return;
-                }
+                    let mut default_browser_name = self.default_browser.to_string();
+                    if let Some(browser_name) = default_browser_name.get_mut(0..1) {
+                        browser_name.make_ascii_uppercase();
+                    }
 
-                let mut chrome_interface = chrome_lock.unwrap();
-                let prefs = chrome_interface.prefs();
-                let preferred_profile = prefs.get_preferred_profile();
-                let mut new_preferred_profile = preferred_profile.clone();
-
-                for profile_entry in &chrome_interface.profile_entries {
-                    self.draw_profile_icon(ui, profile_entry);
-
-                    self.draw_profile_label_button(ui, profile_entry);
-
-                    // may update preferred_profile
-                    self.draw_preferred_profile_button(
-                        ui,
-                        profile_entry,
-                        &mut new_preferred_profile,
-                    );
+                    ui.label(format!("{} Profile", default_browser_name));
 
                     ui.end_row();
-                } // for profile entry
 
-                if preferred_profile != new_preferred_profile {
-                    let prefs = chrome_interface.prefs_mut();
-                    prefs.set_preferred_profile(&new_preferred_profile);
-
-                    // todo: do this right in prefs once I pull out all the file stuff
-                    if let Err(e) = chrome_interface.write_prefs() {
-                        error!("couldn't write prefs: {}", e);
+                    let chrome_lock = self.chrome_interface.lock();
+                    if chrome_lock.is_err() {
+                        error!("couldn't lock chrome_inteface!");
+                        return;
                     }
-                }
-            }); // grid
+
+                    let mut chrome_interface = chrome_lock.unwrap();
+                    let prefs = chrome_interface.prefs();
+                    let preferred_profile = prefs.get_preferred_profile();
+                    let mut new_preferred_profile = preferred_profile.clone();
+
+                    for profile_entry in &chrome_interface.profile_entries {
+                        self.draw_profile_icon(ui, profile_entry);
+
+                        self.draw_profile_label_button(ui, profile_entry);
+
+                        // may update preferred_profile
+                        self.draw_preferred_profile_button(
+                            ui,
+                            profile_entry,
+                            &mut new_preferred_profile,
+                        );
+
+                        ui.end_row();
+                    } // for profile entry
+
+                    // if user changed preferred profile, save prefs
+                    if preferred_profile != new_preferred_profile {
+                        let prefs = chrome_interface.prefs_mut();
+                        prefs.set_preferred_profile(&new_preferred_profile);
+
+                        // todo: do this right in prefs once I pull out all the file stuff
+                        if let Err(e) = chrome_interface.write_prefs() {
+                            error!("couldn't write prefs: {}", e);
+                        }
+                    }
+                }); // grid
+            }); // layout
         }
     }
 
@@ -386,7 +393,7 @@ impl MyApp {
         }
 
         if ui
-            .add_sized(egui::vec2(200.0, MyApp::BUTTON_SIZE), button)
+            .add_sized(egui::vec2(MyApp::PROFILE_BUTTON_WIDTH, MyApp::BUTTON_SIZE), button)
             .clicked()
         {
             // if shift down, chrome_valet remains open

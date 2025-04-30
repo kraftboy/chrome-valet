@@ -5,15 +5,13 @@ pub fn custom_window_frame(
     title: &str,
     add_contents: impl FnOnce(&mut egui::Ui),
 ) {
-    use egui::*;
+    use egui::{CentralPanel, UiBuilder};
 
-    let panel_frame = egui::Frame {
-        fill: ctx.style().visuals.window_fill(),
-        rounding: 10.0.into(),
-        stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
-        outer_margin: 0.5.into(), // so the stroke is within the bounds
-        ..Default::default()
-    };
+    let panel_frame = egui::Frame::new()
+        .fill(ctx.style().visuals.window_fill())
+        .corner_radius(10)
+        .stroke(ctx.style().visuals.widgets.noninteractive.fg_stroke)
+        .outer_margin(1); // so the stroke is within the bounds
 
     CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
         let app_rect = ui.max_rect();
@@ -33,17 +31,21 @@ pub fn custom_window_frame(
             rect
         }
         .shrink(4.0);
-        let mut content_ui = ui.child_ui(content_rect, *ui.layout());
+        let mut content_ui = ui.new_child(UiBuilder::new().max_rect(content_rect));
         add_contents(&mut content_ui);
     });
 }
 
 fn title_bar_ui(ui: &mut egui::Ui, title_bar_rect: eframe::epaint::Rect, title: &str) {
-    use egui::*;
+    use egui::{vec2, Align2, FontId, Id, PointerButton, Sense, UiBuilder};
 
     let painter = ui.painter();
 
-    let title_bar_response = ui.interact(title_bar_rect, Id::new("title_bar"), Sense::click());
+    let title_bar_response = ui.interact(
+        title_bar_rect,
+        Id::new("title_bar"),
+        Sense::click_and_drag(),
+    );
 
     // Paint the title:
     painter.text(
@@ -70,21 +72,23 @@ fn title_bar_ui(ui: &mut egui::Ui, title_bar_rect: eframe::epaint::Rect, title: 
             .send_viewport_cmd(ViewportCommand::Maximized(!is_maximized));
     }
 
-    if title_bar_response.is_pointer_button_down_on() {
+    if title_bar_response.drag_started_by(PointerButton::Primary) {
         ui.ctx().send_viewport_cmd(ViewportCommand::StartDrag);
     }
 
-    ui.allocate_ui_at_rect(title_bar_rect, |ui| {
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+    ui.scope_builder(
+        UiBuilder::new()
+            .max_rect(title_bar_rect)
+            .layout(egui::Layout::right_to_left(egui::Align::Center)),
+        |ui| {
             ui.spacing_mut().item_spacing.x = 0.0;
             ui.visuals_mut().button_frame = false;
             ui.add_space(8.0);
             close_maximize_minimize(ui);
-        });
-    });
+        },
+    );
 }
 
-/// Show some close/maximize/minimize buttons for the native window.
 /// Show some close/maximize/minimize buttons for the native window.
 fn close_maximize_minimize(ui: &mut egui::Ui) {
     use egui::{Button, RichText};
@@ -98,7 +102,7 @@ fn close_maximize_minimize(ui: &mut egui::Ui) {
         ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
     }
 
-    /* maximize disabled
+    /*
     let is_maximized = ui.input(|i| i.viewport().maximized.unwrap_or(false));
     if is_maximized {
         let maximized_response = ui
@@ -116,8 +120,8 @@ fn close_maximize_minimize(ui: &mut egui::Ui) {
             ui.ctx().send_viewport_cmd(ViewportCommand::Maximized(true));
         }
     }
-*/
-
+    */
+    
     let minimized_response = ui
         .add(Button::new(RichText::new("🗕").size(button_height)))
         .on_hover_text("Minimize the window");
