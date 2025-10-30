@@ -16,11 +16,11 @@ use std::os::windows::process::CommandExt;
 use std::panic;
 use std::process::exit;
 use std::process::Command;
-use std::str;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Instant;
+use crc32fast::Hasher;
 
 use chrome_interface::{ChromeInterface, ChromeProfileEntry};
 use registry_utils::Browser;
@@ -57,7 +57,7 @@ struct Args {
     disable_default_browser_warning: bool,
 }
 
-static mut PANIC_URL: [u8; 2048] = [0; 2048];
+static PANIC_URL: Mutex<String> = Mutex::new(String::new());
 
 fn set_log_level(level: LevelFilter) {
     simple_logging::log_to(io::stdout(), level);
@@ -98,18 +98,26 @@ async fn main() {
 
     debug!("args: {:?}", args);
 
+    
     if let Some(url) = &args.url {
+
         // register minimum nice behaviour for panics, just open the damn browser
-        unsafe {
-            PANIC_URL[0..url.len()].copy_from_slice(url.as_bytes());
-        };
+        if let Ok(mut panic_url) = PANIC_URL.lock() {
+            *panic_url = url.to_string();
+        }
+
         panic::set_hook(Box::new(|_| {
-            unsafe{
-                // there's probably a less hairy way of doing this, but I'm not rust ninja enough yet
-                let mut url_str = str::from_utf8(&PANIC_URL).unwrap();
-                url_str = &url_str[0..PANIC_URL.into_iter().position(|r| r == 0).unwrap()];
-                open_url_in_chrome(&Browser::Chrome, &String::from(url_str), None, false);
-            }
+
+            let default_url = "https://example.com/report-bug";
+        
+            // Try to get the custom URL if one was set
+            let url = match PANIC_URL.lock() {
+                    Ok(url_guard) => url_guard.clone(),
+                    Err(_) => default_url.to_string(),
+                };
+
+            open_url_in_chrome(&Browser::Chrome, &url, None, false);
+            
         }));
     }
 
@@ -128,11 +136,14 @@ async fn main() {
     let preferred_profile = chrome.prefs().get_preferred_profile();
     let default_browser = chrome.get_default_browser();
     if (!args.force_ui && !keys.contains(&Keycode::LAlt)) && args.url.is_some() {
+        
         let preferred_profile = if !preferred_profile.is_empty() {
             Some(&preferred_profile)
         } else {
             None
         };
+        
+        // open the url in the preferred profile
         open_url_in_chrome(
             &default_browser,
             &args.url.as_ref().unwrap(),
@@ -449,6 +460,24 @@ impl eframe::App for MyApp {
     }
 }
 
+pub fn general_url_targetid(url: &str) -> String {
+    let mut hasher = Hasher::new();
+    hasher.update(url.as_bytes());
+    let crc = hasher.finalize();
+    
+    // Convert to base36 (alphanumeric)
+    let mut num = crc;
+    let mut hash = String::new();
+    let charset = "0123456789abcdefghijklmnopqrstuvwxyz";
+    
+    for _ in 0..8 {
+        hash.push(charset.chars().nth((num % 36) as usize).unwrap());
+        num /= 36;
+    }
+    
+    hash
+}
+
 fn open_url_in_chrome(
     browser: &Browser,
     url: &String,
@@ -472,7 +501,8 @@ fn open_url_in_chrome(
         chrome_command.arg(format!("--profile-directory={}", profile_name.unwrap()));
     }
 
-    chrome_command.arg("--single-argument").arg(url);
+    let target_id: String = general_url_targetid(url);
+    chrome_command.arg("--single-argument").arg(format!("--target={}", target_id)).arg(url);
 
     let chrome_command_child_result = chrome_command.spawn();
 

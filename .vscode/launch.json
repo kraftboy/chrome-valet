@@ -17,14 +17,31 @@
             "console": "externalTerminal"
         },
         {
-            "name": "(Windows) Launch /w URL",
+            "name": "(Windows) Launch /w www.example.com",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
+            "preLaunchTask": "rust: cargo build",
+            "args": [
+                "--log-level",
+                "debug",
+                "--url",
+                "https://www.example.com"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [ {"name" : "RUST_LOG", "value" : "debug" }],
+            "console": "integratedTerminal"
+        },
+                {
+            "name": "(Windows) Launch /w www.example.org",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
             "preLaunchTask": "rust: cargo build",
             "args": [
                 "--url",
-                "https://www.google.com/search?q=garret+thomson&A=foo&b=bar"
+                "https://www.example.org"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

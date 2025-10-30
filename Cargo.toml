@@ -22,7 +22,7 @@ eframe = { version = "*", default-features = false, features = [
 futures = "*"
 tokio = { version = "*", features = ["macros", "rt-multi-thread"] }
 image = "*"
-winapi = "*"
+winapi = { version = "*",  features = ["wincon"] }
 utfx = "*"
 registry = "*"
 simple-logging = "*"
@@ -30,6 +30,7 @@ log = "*"
 quick-error = "*"
 cli-clipboard = "*"
 anyhow = "*"
+crc32fast = "1.5.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
